@@ -31,13 +31,13 @@ Release the mouse to take action.
 
 Hold `Shift` +  `Up` | `Down` | `Left` | `Right` keys to move to a new focused window.
 
-## Mirror windows
+### Mirror windows
 
 Hold `Alt` + `y` to mirror the current focused window in the y-axis.
 
 Hold `Alt` + `x` to mirror the current focused window in the x-axis.
 
-## Swap horizontal and vertical splittings
+### Swap horizontal and vertical splittings
 
 Hold `Alt` + `r` to swap between splitting the window horizontally and vertically.
 
