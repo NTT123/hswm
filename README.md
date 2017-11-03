@@ -41,6 +41,26 @@ Hold `Alt` + `x` to mirror the current focused window in the x-axis.
 
 Hold `Alt` + `r` to swap between splitting the window horizontally and vertically.
 
+# Screenshot
+
+![Imgur](https://i.imgur.com/DDvKkGt.png)
+
+# Tips
+
+### Turn on Dock hiding
+
+![](https://i.imgur.com/G6bibkm.png)
+
+### Turn on menubar hiding
+
+![](https://i.imgur.com/BknMXV0.png)
+
+### Hide iTerm titlebar
+
+![Imgur](https://i.imgur.com/JhoUVFP.png)
+
+Looking for `Style` -> `No titlebar`
+
 # How thing works
 
 Windows are managed in a binary tree.
