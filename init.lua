@@ -1,7 +1,7 @@
 local events = hs.uielement.watcher
 local eventtap = require("hs.eventtap")
 
-print("Create a global border variable")
+tree = dofile( os.getenv("HOME") .. "/.hammerspoon/tree.lua")
 
 
 windowList = {}
@@ -45,7 +45,9 @@ function init()
   -- Watch any apps that already exist
   local apps = hs.application.runningApplications()
   for i = 1, #apps do
-	  watchApp(apps[i], true)
+      if apps[i]:name() ~= "Hammerspoon" then
+          watchApp(apps[i], true)
+      end
   end
 end
 
@@ -57,11 +59,9 @@ function handleGlobalAppEvent(name, event, app)
     local appWatcher = watchers[app:pid()]
     if appWatcher then
       appWatcher.watcher:stop()
-      print("!")
 
       for id, watcher in pairs(appWatcher.windows) do
         watcher:stop()
-        print("!")
       end
       watchers[app:pid()] = nil
     end
@@ -96,7 +96,7 @@ end
 
 function watchWindow(win, initializing)
   local appWindows = watchers[win:application():pid()].windows
-  if  win:isStandard() and not appWindows[win:id()] then
+  if  win:isStandard() and not appWindows[win:id()] and win:application():name() ~= "Hammerspoon" then
     local watcher = win:newWatcher(handleWindowEvent, {pid=win:pid(), id=win:id()})
     appWindows[win:id()] = watcher
 
@@ -110,7 +110,6 @@ end
 function handleWindowEvent(win, event, watcher, info)
   if event == events.elementDestroyed then
     watcher:stop()
-    print("!")
     watchers[info.pid].windows[info.id] = nil
     local funt = function ()
         tree.deleteWindowFromTree(root, win:id())
@@ -151,15 +150,12 @@ end
 local spaceWatcher = hs.spaces.watcher.new(space_manager)
 spaceWatcher:start()
 
-tree = dofile( os.getenv("HOME") .. "/.hammerspoon/tree.lua")
 root = tree.initTreeforWorkSpace(30)
 
-print(root)
 
 function window_manager(t) 
 
     if t == "timer" then
-        print("House keepper")
         local tm = function ()
             window_manager("timer")
         end
@@ -186,7 +182,6 @@ function window_manager(t)
                 if father == nil then
                     tree.insertToTree(root, w)
                 else
-                    print("FFAA", father.left, father.right, focusedWindowID)
                     if father.left.windowId == focusedWindowID then
                         tree.insertToNode(father.left, w)
                     else
@@ -206,7 +201,7 @@ function window_manager(t)
     tree.deleteWindowFromTree(root, -1)
 
 
-    dic = {}
+    local dic = {}
     tree.travelTreeAndTiling(root, dic, 10)
 
     local screen = hs.screen.allScreens()[1]:name()
@@ -244,7 +239,7 @@ draw_border = function()
     hs.timer.doAfter(0, window_manager)
 end
 
-hs.window.animationDuration = 0
+hs.window.animationDuration = 0.0
 
 draw_border()
 
@@ -266,7 +261,25 @@ local function swap(father)
     local tmp = father.left
     father.left = father.right
     father.right = tmp
-    print(father.left, father.right)
+    hs.timer.doAfter(0, window_manager)
+
+    local t = father.left.border
+    father.left.border = father.right.border
+    father.right.border = t
+end
+
+function swap_hv()
+    if focusedWindowID == nil then 
+        return
+    end
+    local father = tree.findFatherOfNode(root, focusedWindowID)
+
+    if father == nil then
+        return
+    end
+
+    father.isDividedHorizontal = not father.isDividedHorizontal
+    tree.retilingNodeWithFrame(father, tree.cloneFrame(father.frame))
     hs.timer.doAfter(0, window_manager)
 end
 
@@ -306,30 +319,17 @@ function swap_y()
     end
 end
 
-hs.hotkey.bind({"alt"}, "Right", function()
-    print("move right")
-end )
-
-hs.hotkey.bind({"alt"}, "Left", function()
-    print("move left")
-end )
-
-hs.hotkey.bind({"alt"}, "Down", function()
-    print("move down")
-end )
-
-hs.hotkey.bind({"alt"}, "Up", function()
-    print("move up")
-end )
 
 hs.hotkey.bind({"alt"}, "y", function()
-    print("swap y axis")
     hs.timer.doAfter(0, swap_y)
 end )
 
 hs.hotkey.bind({"alt"}, "x", function()
-    print("swap x axis")
     hs.timer.doAfter(0, swap_x)
+end )
+
+hs.hotkey.bind({"alt"}, "r", function()
+    hs.timer.doAfter(0, swap_hv)
 end )
 
 
@@ -337,7 +337,6 @@ mouseCircle = nil
 mouseCircleTimer = nil
 
 function mouseHighlight()
-	print("mouse")
     -- Delete an existing highlight if it exists
     if mouseCircle then
         mouseCircle:delete()
@@ -358,8 +357,6 @@ function mouseHighlight()
     mouseCircleTimer = hs.timer.doAfter(3, function() mouseCircle:delete() end)
 end
 
-hs.hotkey.bind({}, "ctrl", mouseHighlight)
-
 window_manager("timer")
 
 
@@ -368,32 +365,32 @@ cur_node = nil
 new_node = nil
 
 
-iscmd  = false
-isshit = false
--- verify that *only* the ctrl key flag is being pressed
-local onlyShiftCmd = function(ev)
-    local result = ev:getFlags().shift
+disableClick = false
+isSwap = false
+isResize = false
+
+local ppp = function(ev)
+    local result = ev:getFlags().ctrl
     for k,v in pairs(ev:getFlags()) do
-        if k ~= "shift" and v then
+        if k ~= "ctrl" and v then
             result = false
             break
         end
     end
 
-    local result_ = ev:getFlags().cmd
-    for k,v in pairs(ev:getFlags()) do
-        if k ~= "cmd" and v then
-            result_ = false
-            break
-        end
+    if result then
+        disableClick = true
     end
 
     if (ev:getType() == hs.eventtap.event.types.flagsChanged and not result) or
-        ev:getType() == hs.eventtap.event.types.leftMouseUp then
+        ev:getType() == hs.eventtap.event.types.leftMouseUp or 
+        ev:getType() == hs.eventtap.event.types.rightMouseUp then
 
-        if isshift then
+        disableClick = false
+
+        if isSwap then
+            isSwap = false
             tree.travelAndHideBorder(root)
-            isshift = false
 
             if cur_node ~= nil and new_node ~= nil and cur_node ~= new_node then
                 local t = cur_node.windowId
@@ -406,18 +403,18 @@ local onlyShiftCmd = function(ev)
             new_node = nil
         end
 
-        if iscmd then
+        if isResize then
+            isResize = false
             tree.convertFromBorderToFrame(root)
-            iscmd = false
             hs.timer.doAfter(0, window_manager)
             cur_node = nil
             new_node = nil
         end
     end
 
-    if result_ then
-        if ev:getType() == hs.eventtap.event.types.leftMouseDown then
-            iscmd = true
+    if result then
+        if ev:getType() == hs.eventtap.event.types.rightMouseDown then
+            isResize = true
             tree.travelAndShowBorder(root, create_window_border)
             mouse_loc = hs.mouse.getAbsolutePosition()
             -- tree.travelAndShowBorder(root, create_window_border)
@@ -435,20 +432,12 @@ local onlyShiftCmd = function(ev)
             return true
         end
 
-        if ev:getType() == hs.eventtap.event.types.leftMouseDragged then
-            iscmd = true
-            local ml = hs.mouse.getAbsolutePosition()
-            local dx = ml.x - mouse_loc.x
-            local dy = ml.y - mouse_loc.y
-            tree.resizeNode(root, cur_node, dx, dy)
-            return false
-        end
     end
 
 
     if result then
         if ev:getType() == hs.eventtap.event.types.leftMouseDown then
-            isshift = true
+            isSwap = true
             mouse_loc = hs.mouse.getAbsolutePosition()
             -- tree.travelAndShowBorder(root, create_window_border)
             cur_node = tree.findNodewithPointer(root, mouse_loc)
@@ -459,18 +448,24 @@ local onlyShiftCmd = function(ev)
 
             return true
         else
+            if ev:getType() == hs.eventtap.event.types.rightMouseDragged then
+                local ml = hs.mouse.getAbsolutePosition()
+                local dx = ml.x - mouse_loc.x
+                local dy = ml.y - mouse_loc.y
+                tree.resizeNode(root, cur_node, dx, dy)
+                return false
+            end
+
             if ev:getType() == hs.eventtap.event.types.leftMouseDragged then
-            -- print("Md")
             local ml = hs.mouse.getAbsolutePosition()
             local temp_new_node = new_node
             new_node = tree.findNodewithPointer(root, ml)
-            -- print(dump(ml))
             if new_node == cur_node and temp_new_node ~= cur_node and temp_new_node ~= nil and temp_new_node.border ~= nil then
                 temp_new_node.border:delete()
                 temp_new_node.border = nil
             end
             if new_node ~= nil and new_node ~= cur_node then
-                if temp_new_node.border ~= nil and temp_new_node ~= new_node and temp_new_node ~= cur_node then
+                if temp_new_node ~= nil and temp_new_node.border ~= nil and temp_new_node ~= new_node and temp_new_node ~= cur_node then
                     temp_new_node.border:delete()
                     temp_new_node.border = nil
                 end
@@ -492,9 +487,66 @@ local onlyShiftCmd = function(ev)
 
     return false
 end
+--
+-- verify that *only* the ctrl key flag is being pressed
+function onlyShiftCmd(ev)
+
+    hs.timer.doAfter(0, function()
+        ppp(ev)
+    end)
+
+    if disableClick then
+        if ev:getType() == hs.eventtap.event.types.leftMouseDown or
+        ev:getType() == hs.eventtap.event.types.rightMouseDown then
+            return true
+        end
+    end
+    return false 
+end
+
 
 ttt = hs.eventtap.event.types
-resizeWatcher = hs.eventtap.new({ttt.flagsChanged, ttt.keyDown, ttt.keyUp, ttt.leftMouseDown, ttt.leftMouseDragged, ttt.leftMouseUp}, onlyShiftCmd)
+resizeWatcher = hs.eventtap.new({ttt.flagsChanged, ttt.keyDown, ttt.keyUp, ttt.leftMouseDown, ttt.leftMouseDragged, ttt.rightMouseDragged, ttt.leftMouseUp, ttt.rightMouseDown, ttt.rightMouseUp}, onlyShiftCmd)
 
 resizeWatcher:start()
 
+function moveFocuses(direction)
+    local fw = hs.window.focusedWindow()
+    if fw ~= nil then
+        focusedWindowID = fw:id()
+    else
+        return
+    end
+    
+    if fw:isStandard() then
+        local node = tree.getNodeFromWindowID(root, focusedWindowID)
+        if node == nil then
+            return
+        end
+
+        local id = tree.getNextToNode(root, node, direction)
+        if id ~= nil then
+            local w = hs.window.get(id)
+            if w ~= nil then
+                hs.window.focus(w)
+            end
+        end
+        
+    end
+end
+
+hs.hotkey.bind({"shift"}, "Right", function()
+    hs.timer.doAfter(0, function () moveFocuses("right") end)
+end )
+
+hs.hotkey.bind({"shift"}, "Left", function()
+    hs.timer.doAfter(0, function() moveFocuses("left") end)
+end )
+
+hs.hotkey.bind({"shift"}, "Down", function()
+    hs.timer.doAfter(0, function() moveFocuses("down") end)
+end )
+
+hs.hotkey.bind({"shift"}, "Up", function()
+    hs.timer.doAfter(0, function() moveFocuses("up") end)
+end )

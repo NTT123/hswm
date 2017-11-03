@@ -1,6 +1,23 @@
 
 local pkg = {}
 
+local function cloneFrame(frame)
+    local f = hs.geometry({x = frame.x, y= frame.y, w= frame.w, h = frame.h})
+    return f
+end
+
+pkg.cloneFrame = cloneFrame
+
+local function grid(frame)
+    local new = cloneFrame(frame)
+    new.x = math.ceil(frame.x / 5) * 5
+    new.y = math.ceil(frame.y / 5) * 5
+    new.w = math.floor(frame.w / 5) * 5
+    new.h = math.floor(frame.h / 5) * 5
+    return new
+end
+
+
 local function copyNode(fromA, toB)
     toB.frame = fromA.frame
     toB.left  = fromA.left
@@ -10,33 +27,46 @@ local function copyNode(fromA, toB)
     toB.windowId = fromA.windowId
 end
 
-pkg.initTreeforWorkSpace = function (padding)
-	local tree = {}
-    local f = hs.window.allWindows()[1]:screen():frame()
+
+local function createNode()
+    local node = {}
+    node.left = nil
+    node.right = nil
+    node.isDividedHorizontal = false
+    node.isAvailable = true
+    node.windowId = nil
+    node.frame = hs.geometry.rect(0, 0, 0, 0)
+    node.floating = false
+
+    return node
+end
+
+local function initTreeforWorkSpace(padding)
+    local tree = createNode()
+    local f = hs.screen.primaryScreen():frame()
+    
     tree.frame = hs.geometry(f.x + padding, f.y + padding, f.w - 2 * padding, f.h - 2*padding)
-    tree.left = nil
-    tree.right = nil
-    tree.isDividedHorizontal  = false
-    tree.isAvailable = true
-    tree.windowId = nil
 
     return tree
 end
+
+pkg.initTreeforWorkSpace = initTreeforWorkSpace
 
 local function computeWindowFrame(nodeFrame) 
     return nodeFrame
 end
 
 local function splitVertical(node, window)
-    local leftNode = {}
-    local rightNode = {}
-    leftNode.frame = hs.geometry(node.frame.x, node.frame.y, node.frame.w/2, node.frame.h)
+    local leftNode = createNode()
+    local rightNode = createNode()
+
+    leftNode.frame = hs.geometry(node.frame.x, node.frame.y, 0.7*node.frame.w, node.frame.h)
+
     leftNode.windowId = node.windowId
     leftNode.isAvailable = false
     leftNode.isDividedHorizontal = true
 
-
-    rightNode.frame = hs.geometry(node.frame.x + node.frame.w / 2, node.frame.y, node.frame.w / 2, node.frame.h)
+    rightNode.frame = hs.geometry(node.frame.x + 0.7*node.frame.w , node.frame.y, 0.3*node.frame.w, node.frame.h)
     rightNode.isAvailable = false
     rightNode.windowId = window:id()
     rightNode.isDividedHorizontal = true
@@ -44,18 +74,19 @@ local function splitVertical(node, window)
     node.left = leftNode
     node.right = rightNode
     node.windowId = nil
+    node.splitHorizontal = false
 end
 
 local function splitHorizontal(node, window)
-    local leftNode = {}
-    local rightNode = {}
-    leftNode.frame = hs.geometry(node.frame.x, node.frame.y, node.frame.w, node.frame.h / 2)
+    local leftNode = createNode()
+    local rightNode = createNode()
+    leftNode.frame = hs.geometry(node.frame.x, node.frame.y, node.frame.w, 0.7*node.frame.h)
     leftNode.windowId = node.windowId
     leftNode.isAvailable = false
     leftNode.isDividedHorizontal = false
 
 
-    rightNode.frame = hs.geometry(node.frame.x, node.frame.y + node.frame.h / 2, node.frame.w, node.frame.h / 2)
+    rightNode.frame = hs.geometry(node.frame.x, node.frame.y + 0.7*node.frame.h, node.frame.w, 0.3*node.frame.h )
     rightNode.isAvailable = false
     rightNode.windowId = window:id()
     rightNode.isDividedHorizontal = false
@@ -63,6 +94,7 @@ local function splitHorizontal(node, window)
     node.left = leftNode
     node.right = rightNode
     node.windowId = nil
+    node.splitHorizontal = true
 end
 
 local function heightOfNode(node)
@@ -79,7 +111,7 @@ local function heightOfNode(node)
     end
 end
 
-pkg.insertToNode = function (node, win)
+local function insertToNode(node, win)
     if node == nil then 
         return
     end
@@ -91,6 +123,7 @@ pkg.insertToNode = function (node, win)
     end
 end
 
+pkg.insertToNode = insertToNode
 
 
 local function insertToTree(root, window) 
@@ -138,9 +171,14 @@ local function travelTreeAndTiling(root, dic, pad)
     if root == nil then
         return 
     else
+        root.frame = grid(root.frame)
         if root.windowId then
             local f = root.frame
-            local ff = hs.geometry(f.x + pad, f.y + pad, f.w - 2*pad, f.h - 2*pad)
+            local ff = cloneFrame(root.frame)
+            ff.x = ff.x + pad
+            ff.y = ff.y + pad
+            ff.w = ff.w - 2*pad
+            ff.h = ff.h - 2*pad
             dic[root.windowId] = ff
         else
             travelTreeAndTiling(root.left, dic, pad)
@@ -214,18 +252,11 @@ end
 
 pkg.findFatherOfNode = findFatherOfNode
 
-local function cloneFrame(frame)
-    local f = hs.geometry(frame.x, frame.y, frame.w, frame.h)
-    return f
-end
-
-pkg.cloneFrame = cloneFrame
-
 local function divideFrameHorizontal(frame)
     local rl = {}
 
-    rl[1] = hs.geometry(frame.x, frame.y, frame.w, frame.h / 2)
-    rl[2] = hs.geometry(frame.x, frame.y + frame.h / 2, frame.w, frame.h / 2)
+    rl[1] = hs.geometry(frame.x, frame.y, frame.w, frame.h *0.7)
+    rl[2] = hs.geometry(frame.x, frame.y + frame.h* 0.7, frame.w, frame.h * 0.3)
 
     return rl
 end
@@ -233,8 +264,8 @@ end
 local function divideFrameVerical(frame)
     local rl = {}
 
-    rl[1] = hs.geometry(frame.x, frame.y, frame.w / 2, frame.h)
-    rl[2] = hs.geometry(frame.x + frame.w / 2, frame.y, frame.w / 2, frame.h)
+    rl[1] = hs.geometry(frame.x, frame.y, frame.w *0.7, frame.h)
+    rl[2] = hs.geometry(frame.x + frame.w *0.7, frame.y, frame.w * 0.3, frame.h)
 
     return rl
 end
@@ -291,7 +322,7 @@ pkg.retilingNodeWithFrame = retilingNodeWithFrame
 
 pkg.deleteWindowFromTree = function(root, windowID)
     if root.windowId == windowID then
-        root = initTreeforWorkSpace()
+        root = initTreeforWorkSpace(30)
     else
         local father = findFatherOfNode(root, windowID)
         if father == nil then
@@ -363,6 +394,7 @@ local function rescaleBorder(node)
         return 
     end
     if node.windowId then
+        node.border:show()
         return
     end
 
@@ -381,10 +413,12 @@ local function rescaleBorder(node)
         local h1 = delta / 2
         f1.h = f1.h + h1
         f1.w = node.border:frame().w
+        f1.x = node.border:frame().x
+        f1.y = node.border:frame().y
 
+        f2.x = f1.x
         f2.y = f1.y + f1.h
         f2.h = node.border:frame().h - f1.h
-
         f2.w = f1.w
     else
         local W = f1.w + f2.w
@@ -395,11 +429,17 @@ local function rescaleBorder(node)
 
         f1.w = f1.w + w1
         f1.h = node.border:frame().h
+        f1.x = node.border:frame().x
+        f1.y = node.border:frame().y
 
         f2.x = f1.x + f1.w
+        f2.y = f1.y
         f2.w = node.border:frame().w  - f1.w
         f2.h = f1.h
     end
+
+    f1 = grid(f1)
+    f2 = grid(f2)
 
     node.left.border:setFrame(f1)
     node.right.border:setFrame(f2)
@@ -418,21 +458,23 @@ local function resizeNode(root, node, dx, dy)
         return
     end
 
-    local ddx = dx
-    local ddy = dy
-
     local f1 = cloneFrame(father.left.frame)
     local f2 = cloneFrame(father.right.frame)
 
+
     if not father.isDividedHorizontal then
-        f1.w = f1.w + ddx
+        f1.w = f1.w + dx
         f2.w = father.frame.w - f1.w
         f2.x = f1.x + f1.w
     else
-        f1.h = f1.h + ddy
+        f1.h = f1.h + dy
         f2.h = father.frame.h - f1.h
         f2.y = f1.y + f1.h
     end
+
+    
+    f1 = grid(f1)
+    f2 = grid(f2)
 
     father.left.border:setFrame(f1)
     father.right.border:setFrame(f2)
@@ -521,7 +563,6 @@ local function travelAndShowBorder(root, create_border)
 
     if root.windowId ~= nil then
         root.border:setFrame(root.frame)
-        root.border:show()
         return
     end
 
@@ -558,5 +599,92 @@ pkg.travelAndShowBorder = travelAndShowBorder
 pkg.travelAndHideBorder = travelAndHideBorder
 
 pkg.deleteZombies = deleteZombies
+
+local function findWindow(root)
+    if root == nil then
+        return nil
+    end
+
+    if root.windowId ~= nil and root.windowId ~= -1 then
+        return root.windowId
+    end
+
+    if root.windowId == -1 then
+        return nil
+    end
+
+
+    if root.left.windowId ~= nil then 
+        return root.left.windowId
+    end
+
+    if root.right.windowId ~= nil then 
+        return root.right.windowId
+    end
+
+    local rl = findWindow(root.left)
+    if rl ~= nil then
+        return rl
+    end
+
+    rl = findWindow(root.right)
+    return rl
+end
+
+local function getNextToNode(root, node, direction)
+    if root == node then
+        return nil
+    end
+
+    local father = findFather(root, node)
+
+    if father == nil then
+        return
+    end
+    if father.isDividedHorizontal then
+        if direction == "up" and father.right == node then
+            return findWindow(father.left)
+        end
+
+        if direction == "down" and father.left == node then
+            return findWindow(father.right)
+        end
+
+    end
+
+    if not father.isDividedHorizontal then
+        if direction == "left" and father.right == node then
+            return findWindow(father.left)
+        end
+
+        if direction == "right" and father.left == node then
+            return findWindow(father.right)
+        end
+
+    end
+
+    return getNextToNode(root, father, direction)
+end
+pkg.getNextToNode = getNextToNode
+
+local function getNodeFromWindowID(root, id)
+    if root == nil then 
+        return nil
+    end
+
+    if root.windowId == id then
+        return root
+    end
+
+    local rl = getNodeFromWindowID(root.left, id)
+    if rl ~= nil then
+        return rl
+    end
+
+    return getNodeFromWindowID(root.right, id)
+end
+
+pkg.getNodeFromWindowID = getNodeFromWindowID
+
 
 return pkg
