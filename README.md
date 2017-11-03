@@ -10,7 +10,7 @@ A tiling window manager on macOS,  powered by Lua and Hammerspoon.
 
   > `git clone https://github.com/NTT123/hswm.git ~/.hammerspoon`
 
-It will clone this reposity to hammerspoon config directory.
+It will clone this repository to hammerspoon config directory.
 
 Now, start hammerspoon app. Good luck.
 
