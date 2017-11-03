@@ -43,7 +43,7 @@ end
 
 local function initTreeforWorkSpace(padding)
     local tree = createNode()
-    local f = hs.screen.primaryScreen():frame()
+    local f = hs.screen.mainScreen():frame()
     
     tree.frame = hs.geometry(f.x + padding, f.y + padding, f.w - 2 * padding, f.h - 2*padding)
 
@@ -322,7 +322,7 @@ pkg.retilingNodeWithFrame = retilingNodeWithFrame
 
 pkg.deleteWindowFromTree = function(root, windowID)
     if root.windowId == windowID then
-        root = initTreeforWorkSpace(30)
+        root = initTreeforWorkSpace(global_padding)
     else
         local father = findFatherOfNode(root, windowID)
         if father == nil then
