@@ -237,7 +237,7 @@ hs.hotkey.bind({"alt"}, "x", function()
     hs.timer.doAfter(0, swap_x)
 end )
 
-hs.hotkey.bind({"alt"}, "r", function()
+hs.hotkey.bind({"alt"}, "e", function()
     hs.timer.doAfter(0, swap_hv)
 end )
 
@@ -358,9 +358,11 @@ local ppp = function(ev)
             cur_node = tree.findNodewithPointer(root, mouse_loc)
 
             root.canvas = hs.canvas.new(tree.cloneBorder(hs.screen.mainScreen():frame()))
+            root.canvas:alpha(1)
 
             root.canvas:wantsLayer(true)
             root.canvas:show()
+
 
             if cur_node ~= nil then
                 root.canvas:appendElements( tree.create_canvas_border(cur_node.frame) )
@@ -376,6 +378,7 @@ local ppp = function(ev)
             local t = root.canvas
 
             root.canvas = hs.canvas.new(tree.cloneBorder(hs.screen.mainScreen():frame()))
+            root.canvas:alpha(1)
 
             local ml = hs.mouse.getAbsolutePosition()
             local dx = ml.x - mouse_loc.x
@@ -404,6 +407,7 @@ local ppp = function(ev)
         local tt = root.canvas
 
         root.canvas = hs.canvas.new(tree.cloneBorder(hs.screen.mainScreen():frame()))
+        root.canvas:alpha(1)
         root.canvas:wantsLayer(true)
         root.canvas:show()
 

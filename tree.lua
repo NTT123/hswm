@@ -19,7 +19,14 @@ pkg.cloneFrame = cloneFrame
 local function create_canvas_border(frame)
     local border = {}
     border.action = "stroke"
-    border.strokeColor = {alpha = 1.0, red = 1.0, green = 1.0}
+    border.strokeColor = {alpha = 1, red = 1.0, green = 1.0}
+    border.fillColor = { alpha = 1 }
+    border.antialias = false
+    border.arcRadii = false
+    border.canvasAlpha = 1.0
+    border.imageAlpha = 1.0
+    border.strokeWidth = 5
+    border.withShadow = true
     border.frame = cloneBorder(frame)
     border.type = "rectangle"
 

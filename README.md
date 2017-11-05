@@ -42,7 +42,7 @@ Hold `Alt` + `x` to mirror the current focused window in the x-axis.
 
 ### Swap horizontal and vertical splittings
 
-Hold `Alt` + `r` to swap between splitting the window horizontally and vertically.
+Hold `Alt` + `e` to swap between splitting the window horizontally and vertically.
 
 # Screenshot
 
