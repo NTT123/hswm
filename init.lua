@@ -1,19 +1,21 @@
+local hswm = {} 
 local events = hs.uielement.watcher
-local eventtap = require("hs.eventtap")
 
 local spaces = require("hs._asm.undocumented.spaces")
 
-global_padding = 50
-window_padding = 5
+local global_padding = 50
+local window_padding = 5
 
 
-windowList = {}
-focusedWindowID = -1
-borderList = {}
+local windowList = {}
+local focusedWindowID = -1
+local borderList = {}
 
-workspace = {}
+local workspace = {}
 
-bdw = {}
+local bdw = {}
+
+hs.window.animationDuration = 0.0
 
 local function create_window_border(frame)
     local border = hs.drawing.rectangle(hs.geometry.rect(frame))
@@ -32,7 +34,7 @@ local function init_border()
     return Border
 end
 
-function dump(o)
+local function dump(o)
    if type(o) == 'table' then
       local s = '{ '
       for k,v in pairs(o) do
@@ -45,12 +47,39 @@ function dump(o)
    end
 end
 
-tree = dofile( os.getenv("HOME") .. "/.hammerspoon/tree.lua")
+local tree = dofile( os.getenv("HOME") .. "/.hammerspoon/tree.lua")
+hswm.window_manager = function()
+end
 
-function window_manager(t) 
+local function space_manager(spaceid)
+    spaceid = spaces.activeSpace()
+    if workspace[spaceid] == nil then
+        workspace[spaceid] = {}
+    end
+
+    current_space = workspace[spaceid]
+
+    if current_space.root == nil then
+        current_space.root = tree.initTreeforWorkSpace(global_padding)
+    end
+
+    root = nil
+    root = current_space.root
+    if previous_border ~= nil then
+        previous_border:hide()
+    end
+
+    hs.timer.doAfter(0, hswm.window_manager)
+
+    return false
+end
+
+hswm.space_manager = space_manager
+
+local function window_manager(t) 
 
     if root == nil then
-        space_manager()
+        hswm.space_manager()
         return
     end
 
@@ -98,7 +127,7 @@ function window_manager(t)
 
 
     tree.deleteZombies(root, mm)
-    tree.deleteWindowFromTree(root, -1)
+    tree.deleteWindowFromTree(root, -1, global_padding)
 
 
     local dic = {}
@@ -147,7 +176,7 @@ function window_manager(t)
     f()
 end
 
-hs.window.animationDuration = 0.0
+hswm.window_manager = window_manager
 
 local function swap(father)
     local left_frame = nil
@@ -174,7 +203,7 @@ local function swap(father)
     father.right.border = t
 end
 
-function swap_hv()
+local function swap_hv()
     if focusedWindowID == nil then 
         return
     end
@@ -189,7 +218,7 @@ function swap_hv()
     hs.timer.doAfter(0, window_manager)
 end
 
-function swap_x()
+local function swap_x()
     if focusedWindowID == nil then 
         return
     end
@@ -207,7 +236,7 @@ function swap_x()
     end
 end
 
-function swap_y()
+local function swap_y()
     if focusedWindowID == nil then 
         return
     end
@@ -242,37 +271,14 @@ end )
 mouseCircle = nil
 mouseCircleTimer = nil
 
-function mouseHighlight()
-    -- Delete an existing highlight if it exists
-    if mouseCircle then
-        mouseCircle:delete()
-        if mouseCircleTimer then
-            mouseCircleTimer:stop()
-        end
-    end
-    -- Get the current co-ordinates of the mouse pointer
-    mousepoint = hs.mouse.getAbsolutePosition()
-    -- Prepare a big red circle around the mouse pointer
-    mouseCircle = hs.drawing.circle(hs.geometry.rect(mousepoint.x-40, mousepoint.y-40, 80, 80))
-    mouseCircle:setStrokeColor({["red"]=1,["blue"]=0,["green"]=0,["alpha"]=1})
-    mouseCircle:setFill(false)
-    mouseCircle:setStrokeWidth(5)
-    mouseCircle:show()
-
-    -- Set a timer to delete the circle after 3 seconds
-    mouseCircleTimer = hs.timer.doAfter(3, function() mouseCircle:delete() end)
-end
+local mouse_loc = nil
+local cur_node = nil
+local new_node = nil
 
 
-
-mouse_loc = nil
-cur_node = nil
-new_node = nil
-
-
-disableClick = false
-isSwap = false
-isResize = false
+local disableClick = false
+local isSwap = false
+local isResize = false
 
 
 local ppp = function(ev)
@@ -452,7 +458,7 @@ end
 
 
 
-ttt = hs.eventtap.event.types
+local ttt = hs.eventtap.event.types
 resizeWatcher1 = hs.eventtap.new({ttt.rightMouseUp}, onlyShiftCmd3)
 
 resizeWatcher1:start()
@@ -507,52 +513,13 @@ hs.hotkey.bind({"shift"}, "Up", function()
 end )
 
 
-function space_manager(spaceid)
-    spaceid = spaces.activeSpace()
-    if workspace[spaceid] == nil then
-        workspace[spaceid] = {}
-    end
 
-    current_space = workspace[spaceid]
-
-    if current_space.root == nil then
-        current_space.root = tree.initTreeforWorkSpace(global_padding)
-    end
-
-    root = nil
-    root = current_space.root
-    if previous_border ~= nil then
-        previous_border:hide()
-    end
-
-    hs.timer.doAfter(0, window_manager)
-
-    return false
-end
-
-space_manager()
-
-local spaceWatcher = hs.spaces.watcher.new(space_manager)
+spaceWatcher = hs.spaces.watcher.new(hswm.space_manager)
 spaceWatcher:start()
 
-local events = hs.uielement.watcher
 watchers = {}
 
-function init()
-  appsWatcher = hs.application.watcher.new(handleGlobalAppEvent)
-  appsWatcher:start()
-
-  -- Watch any apps that already exist
-  local apps = hs.application.runningApplications()
-  for i = 1, #apps do
-      if apps[i]:name() ~= "Hammerspoon" then
-          print(apps[i]:name())
-          watchApp(apps[i], true)
-      end
-  end
-end
-
-function handleGlobalAppEvent(name, event, app)
+local function handleGlobalAppEvent(name, event, app)
   if  event == hs.application.watcher.launched then
     watchApp(app)
   elseif event == hs.application.watcher.terminated then
@@ -571,10 +538,59 @@ function handleGlobalAppEvent(name, event, app)
   return false
 end
 
-function watchApp(app, initializing)
+hswm.handleGlobalAppEvent = handleGlobalAppEvent
+
+local function handleWindowEvent(win, event, watcher, info)
+  if event == events.elementDestroyed then
+    watcher:stop()
+    watchers[info.pid].windows[info.id] = nil
+    if bdw[win:id()] ~= nil then
+        bdw[win:id()]:delete()
+        bdw[win:id()] = nil 
+    end
+    tree.deleteWindowFromTree(root, win:id(), global_padding)
+  end
+
+  hs.timer.doAfer(0, window_manager)
+
+  return false
+end
+
+hswm.handleWindowEvent = handleWindowEvent
+
+local function watchWindow(win, initializing)
+  local appWindows = watchers[win:application():pid()].windows
+  if  win:isStandard() and not appWindows[win:id()] and win:application():name() ~= "Hammerspoon" then
+    local watcher = win:newWatcher(hswm.handleWindowEvent, {pid=win:pid(), id=win:id()})
+    appWindows[win:id()] = watcher
+
+    watcher:start({events.elementDestroyed})
+
+    if not initializing then
+    end
+  end
+end
+
+hswm.watchWindow = watchWindow
+
+local function handleAppEvent(element, event)
+  if event == events.windowCreated then
+    watchWindow(element)
+  elseif event == events.focusedWindowChanged then
+    -- Handle window change
+  end
+
+  hs.timer.doAfter(0, window_manager)
+  return false
+end
+
+hswm.handleAppEvent = handleAppEvent
+
+
+local function watchApp(app, initializing)
   if watchers[app:pid()] then return end
 
-  local watcher = app:newWatcher(handleAppEvent)
+  local watcher = app:newWatcher(hswm.handleAppEvent)
   watchers[app:pid()] = {watcher = watcher, windows = {}}
 
   watcher:start({events.windowCreated, events.focusedWindowChanged, events.mainWindowChanged, events.titleChanged})
@@ -589,46 +605,24 @@ function watchApp(app, initializing)
   end
 end
 
-function handleAppEvent(element, event)
-  if event == events.windowCreated then
-    watchWindow(element)
-  elseif event == events.focusedWindowChanged then
-    -- Handle window change
+hswm.watchApp = watchApp
+
+local function init()
+  appsWatcher = hs.application.watcher.new(hswm.handleGlobalAppEvent)
+  appsWatcher:start()
+
+  -- Watch any apps that already exist
+  local apps = hs.application.runningApplications()
+  for i = 1, #apps do
+      if apps[i]:name() ~= "Hammerspoon" then
+          print(apps[i]:name())
+          watchApp(apps[i], true)
+      end
   end
-
-  hs.timer.doAfter(0, window_manager)
-  return false
-end
-
-function watchWindow(win, initializing)
-  local appWindows = watchers[win:application():pid()].windows
-  if  win:isStandard() and not appWindows[win:id()] and win:application():name() ~= "Hammerspoon" then
-    local watcher = win:newWatcher(handleWindowEvent, {pid=win:pid(), id=win:id()})
-    appWindows[win:id()] = watcher
-
-    watcher:start({events.elementDestroyed})
-
-    if not initializing then
-    end
-  end
-end
-
-function handleWindowEvent(win, event, watcher, info)
-  if event == events.elementDestroyed then
-    watcher:stop()
-    watchers[info.pid].windows[info.id] = nil
-    if bdw[win:id()] ~= nil then
-        bdw[win:id()]:delete()
-        bdw[win:id()] = nil 
-    end
-    tree.deleteWindowFromTree(root, win:id())
-  end
-
-  hs.timer.doAfer(0, window_manager)
-
-  return false
 end
 
 init()
 
 window_manager("timer")
+
+return hswm
