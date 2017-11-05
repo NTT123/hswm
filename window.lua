@@ -229,7 +229,7 @@ local function handleWindowEvent(win, event, watcher, info)
         floatingWindows[win:id()] = nil 
     end
 
-    tree.deleteWindowFromTree(pkg.GLOBAL.root, win:id(), global_padding)
+    tree.deleteWindowFromTree(pkg.GLOBAL.root, win:id(), pkg.GLOBAL.global_padding)
     if pkg.GLOBAL.root == nil then
         space_manager()
     end
