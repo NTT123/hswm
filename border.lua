@@ -138,9 +138,6 @@ local function rescaleBorder(node, canvas)
         f2.h = f1.h
     end
 
-    f1 = tools.grid(f1)
-    f2 = tools.grid(f2)
-
     node.left.border_ = tools.cloneFrame(f1)
     node.right.border_ = tools.cloneFrame(f2)
     rescaleBorder(node.left, canvas)

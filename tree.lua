@@ -393,9 +393,6 @@ local function resizeNode(root, node, dx, dy)
             f2.y = f1.y + f1.h
         end
 
-        f1 = tools.grid(f1)
-        f2 = tools.grid(f2)
-
         grandpa.left.border_ = tools.cloneFrame(f1)
         grandpa.right.border_ = tools.cloneFrame(f2)
 
@@ -431,9 +428,6 @@ local function resizeNode(root, node, dx, dy)
     end
 
     
-    f1 = tools.grid(f1)
-    f2 = tools.grid(f2)
-
     father.left.border_ = tools.cloneFrame(f1)
     father.right.border_ = tools.cloneFrame(f2)
 

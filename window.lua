@@ -359,7 +359,7 @@ local windowResizeAndSwap = function(ev)
             local dy = ml.y - mouse_loc.y
             tree.resizeNode(root, cur_node, dx, dy)
 
-
+            hs.canvas.disableScreenUpdates() 
             local t = #(root.canvas)
 
             for i = 1, t do
@@ -367,6 +367,7 @@ local windowResizeAndSwap = function(ev)
             end
 
             border.travelAndAppendToCanvas(root, root.canvas)
+            hs.canvas.enableScreenUpdates() 
 
             return false
         end
