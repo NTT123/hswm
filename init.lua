@@ -52,6 +52,11 @@ tree = dofile( os.getenv("HOME") .. "/.hammerspoon/tree.lua")
 root = tree.initTreeforWorkSpace(global_padding)
 
 function window_manager(t) 
+
+    if root == nil then
+        root = initTreeforWorkSpace(global_padding)
+    end
+
     if t == "timer" then
         local tm = function ()
             window_manager("timer")
@@ -72,6 +77,7 @@ function window_manager(t)
     local father = tree.findFatherOfNode(root, focusedWindowID)
 
     local mm = {}
+
     for i = 1, #ws do
         local w = ws[i]
         if w:application():name() ~= "Hammerspoon" and w:isStandard() then
