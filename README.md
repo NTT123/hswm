@@ -6,6 +6,9 @@ A tiling window manager on macOS,  powered by Lua and Hammerspoon.
 
 - You need to install Hammerspoon first. You can get it here http://www.hammerspoon.org/
 
+- To support multi spaces, you also need to install https://github.com/asmagill/hs._asm.undocumented.spaces.git . You will need Xcode to compile and install this library. If you get a *modulemap file error* when compiling, try this command instead:
+  > `CFLAGS=-fmodule-map-file=/usr/include/xpc/module.modulemap make install`
+
 - Create config directory with
 
   > `git clone https://github.com/NTT123/hswm.git ~/.hammerspoon`
