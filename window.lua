@@ -262,12 +262,10 @@ local windowResizeAndSwap = function(ev)
     local root = pkg.GLOBAL.root
     local result = ev:getFlags().ctrl
 
-    if ev:getType() == hs.eventtap.event.types.leftMouseUp or 
-        ev:getType() == hs.eventtap.event.types.flagsChanged or 
-        ev:getType() == hs.eventtap.event.types.rightMouseUp then
+    disableClick = false
 
-        disableClick = false
-
+    if ev:getType() == hs.eventtap.event.types.leftMouseUp or
+       ev:getType() == hs.eventtap.event.types.rightMouseUp  then
         if root.canvas ~= nil then
             root.canvas:delete()
             root.canvas = nil
@@ -294,6 +292,8 @@ local windowResizeAndSwap = function(ev)
             cur_node = nil
             new_node = nil
         end
+
+        return
     end
 
     if result then
@@ -302,6 +302,12 @@ local windowResizeAndSwap = function(ev)
 
     if disableClick then
         if ev:getType() == hs.eventtap.event.types.rightMouseDown then
+
+            if root.canvas == nil then
+                root.canvas = hs.canvas.new(border.cloneBorder(hs.screen.mainScreen():frame()))
+                root.canvas:wantsLayer(true)
+                root.canvas:show()
+            end
 
             disableClick = false
             isResize = true
@@ -318,7 +324,6 @@ local windowResizeAndSwap = function(ev)
 
             return true
         end
-
     end
 
     if disableClick then
@@ -330,15 +335,16 @@ local windowResizeAndSwap = function(ev)
             mouse_loc = hs.mouse.getAbsolutePosition()
             cur_node = tree.findNodewithPointer(root, mouse_loc)
 
-            root.canvas = hs.canvas.new(border.cloneBorder(hs.screen.mainScreen():frame()))
-            root.canvas:alpha(1)
-
-            root.canvas:wantsLayer(true)
-            root.canvas:show()
-
+            if root.canvas == nil then
+                root.canvas = hs.canvas.new(border.cloneBorder(hs.screen.mainScreen():frame()))
+                root.canvas:wantsLayer(true)
+                root.canvas:show()
+            end
 
             if cur_node ~= nil then
-                root.canvas:appendElements( border.create_canvas_border(cur_node.frame) )
+                root.canvas[1] =  border.create_canvas_border(cur_node.frame)
+            else
+                root.canvas[1] = nil
             end
 
             return true
@@ -348,23 +354,19 @@ local windowResizeAndSwap = function(ev)
     if isResize then
         if ev:getType() == hs.eventtap.event.types.rightMouseDragged then
 
-            local t = root.canvas
-
-            root.canvas = hs.canvas.new(border.cloneBorder(hs.screen.mainScreen():frame()))
-            root.canvas:alpha(1)
-
             local ml = hs.mouse.getAbsolutePosition()
             local dx = ml.x - mouse_loc.x
             local dy = ml.y - mouse_loc.y
             tree.resizeNode(root, cur_node, dx, dy)
-            root.canvas:wantsLayer(true)
-            border.travelAndAppendToCanvas(root, root.canvas)
-            root.canvas:show()
 
-            if t ~= nil then
-                t:delete()
+
+            local t = #(root.canvas)
+
+            for i = 1, t do
+                root.canvas[t - i + 1] = nil
             end
 
+            border.travelAndAppendToCanvas(root, root.canvas)
 
             return false
         end
@@ -372,34 +374,32 @@ local windowResizeAndSwap = function(ev)
 
     if isSwap then
         if ev:getType() == hs.eventtap.event.types.leftMouseDragged then
-        local ml = hs.mouse.getAbsolutePosition()
-        local temp_new_node = new_node
+            local ml = hs.mouse.getAbsolutePosition()
+            local temp_new_node = new_node
 
-        new_node = tree.findNodewithPointer(root, ml)
+            new_node = tree.findNodewithPointer(root, ml)
 
-        local tt = root.canvas
+            if root.canvas == nil then
+                root.canvas = hs.canvas.new(border.cloneBorder(hs.screen.mainScreen():frame()))
+                root.canvas:wantsLayer(true)
+                root.canvas:show()
+            end
 
-        root.canvas = hs.canvas.new(border.cloneBorder(hs.screen.mainScreen():frame()))
-        root.canvas:alpha(1)
-        root.canvas:wantsLayer(true)
-        root.canvas:show()
+            if cur_node ~= nil then
+                root.canvas[1] =  border.create_canvas_border(cur_node.frame) 
+            end
 
-        if cur_node ~= nil then
-            root.canvas:appendElements( border.create_canvas_border(cur_node.frame) )
-        end
+            if new_node ~= nil then
+                root.canvas[2] =  border.create_canvas_border(new_node.frame) 
+            else
+                root.canvas[#(root.canvas)] = nil
+            end
 
-        if new_node ~= nil then
-            root.canvas:appendElements( border.create_canvas_border(new_node.frame) )
-        end
-
-        if tt ~= nil then
-            tt:delete()
-            tt = nil
-        end
-
-        return false
+            return false
         end
     end
+
+
 
     return false
 end
@@ -428,15 +428,17 @@ end
 
 
 local ttt = hs.eventtap.event.types
-pkg.resizeWatcher1 = hs.eventtap.new({ttt.rightMouseUp}, onlyShiftCmd3)
 
+pkg.resizeWatcher1 = hs.eventtap.new({ttt.rightMouseUp}, onlyShiftCmd3)
 pkg.resizeWatcher1:start()
+
+pkg.resizeWatcher4 = hs.eventtap.new({ttt.leftMouseUp, ttt.leftMouseDown}, onlyShiftCmd3)
+pkg.resizeWatcher4:start()
 
 pkg.resizeWatcher3 = hs.eventtap.new({ttt.rightMouseDragged}, onlyShiftCmd)
 pkg.resizeWatcher3:start()
 
-pkg.resizeWatcher2 = hs.eventtap.new({ttt.flagsChanged, ttt.keyDown, ttt.keyUp, ttt.leftMouseDown, ttt.leftMouseDragged, ttt.leftMouseUp, ttt.rightMouseDown}, onlyShiftCmd)
-
+pkg.resizeWatcher2 = hs.eventtap.new({ttt.flagsChanged, ttt.keyUp, ttt.keyDown, ttt.rightMouseDown, ttt.leftMouseDragged}, onlyShiftCmd)
 pkg.resizeWatcher2:start()
 
 

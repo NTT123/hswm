@@ -18,7 +18,7 @@ local function create_canvas_border(frame)
     border.arcRadii = false
     border.canvasAlpha = 1.0
     border.imageAlpha = 1.0
-    border.strokeWidth = 2
+    border.strokeWidth = 4
     border.frame = cloneBorder(frame)
     border.type = "rectangle"
 
@@ -30,7 +30,7 @@ local function init_border()
     local Border = hs.drawing.rectangle(hs.geometry.rect(0,0,0,0))
     Border:setFill(false)
     Border:setStrokeWidth(3)
-    Border:setStrokeColor({["red"]=1,["blue"]=0,["green"]=0,["alpha"]=0.3})
+    Border:setStrokeColor({["red"]=1,["blue"]=0,["green"]=0,["alpha"]=0.8})
     return Border
 end
 
@@ -63,7 +63,8 @@ local function travelAndAppendToCanvas(root, canvas)
     end
 
     if root.windowID ~= nil and root.border_ ~= nil then
-        canvas:appendElements(create_canvas_border(root.border_))
+        canvas:appendElements( create_canvas_border(root.border_) )
+
         return
     end
 
