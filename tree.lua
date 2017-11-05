@@ -99,6 +99,12 @@ local function insertToNode(node, win)
         return
     end
 
+    if node.frame.w > node.frame.h then
+        node.isDividedHorizontal = false
+    else
+        node.isDividedHorizontal = true
+    end
+
     if node.isDividedHorizontal then
         splitHorizontal(node, win)
     else
