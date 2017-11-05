@@ -14,9 +14,6 @@ borderList = {}
 workspace = {}
 
 bdw = {}
-draw_border = function ()
-
-end
 
 local function create_window_border(frame)
     local border = hs.drawing.rectangle(hs.geometry.rect(frame))
@@ -49,12 +46,12 @@ function dump(o)
 end
 
 tree = dofile( os.getenv("HOME") .. "/.hammerspoon/tree.lua")
-root = tree.initTreeforWorkSpace(global_padding)
 
 function window_manager(t) 
 
     if root == nil then
-        root = initTreeforWorkSpace(global_padding)
+        space_manager()
+        return
     end
 
     if t == "timer" then
@@ -150,13 +147,7 @@ function window_manager(t)
     f()
 end
 
-draw_border = function()
-    hs.timer.doAfter(0, window_manager)
-end
-
 hs.window.animationDuration = 0.0
-
-draw_border()
 
 local function swap(father)
     local left_frame = nil
@@ -272,7 +263,6 @@ function mouseHighlight()
     mouseCircleTimer = hs.timer.doAfter(3, function() mouseCircle:delete() end)
 end
 
-window_manager("timer")
 
 
 mouse_loc = nil
@@ -577,7 +567,7 @@ function handleGlobalAppEvent(name, event, app)
       watchers[app:pid()] = nil
     end
   end
-  hs.timer.doAfter(0, draw_border)
+  hs.timer.doAfter(0, window_manager)
   return false
 end
 
@@ -605,7 +595,8 @@ function handleAppEvent(element, event)
   elseif event == events.focusedWindowChanged then
     -- Handle window change
   end
-  hs.timer.doAfter(0, draw_border)
+
+  hs.timer.doAfter(0, window_manager)
   return false
 end
 
@@ -631,13 +622,13 @@ function handleWindowEvent(win, event, watcher, info)
         bdw[win:id()] = nil 
     end
     tree.deleteWindowFromTree(root, win:id())
-    window_manager()
   end
 
-  draw_border()
+  hs.timer.doAfer(0, window_manager)
 
   return false
 end
 
 init()
 
+window_manager("timer")
