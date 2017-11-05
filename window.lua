@@ -61,7 +61,7 @@ pkg.space_manager = space_manager
 local function window_manager(t) 
     local global_padding = pkg.GLOBAL.global_padding
     local window_padding = pkg.GLOBAL.window_padding
-    local root = pkg.root
+    local root = pkg.GLOBAL.root
 
     if root == nil then
         pkg.space_manager()
@@ -252,10 +252,8 @@ end
 pkg.watchApp = watchApp
 
 
-
-
 local windowResizeAndSwap = function(ev)
-    local root = pkg.root
+    local root = pkg.GLOBAL.root
     local result = ev:getFlags().ctrl
 
     if ev:getType() == hs.eventtap.event.types.leftMouseUp or 

@@ -12,7 +12,6 @@ hs.window.animationDuration = 0.0
 -- local border = dofile( os.getenv("HOME") .. "/.hammerspoon/border.lua")
 -- local tools = dofile( os.getenv("HOME") .. "/.hammerspoon/tools.lua")
 
-
 hswm.window_handlers = dofile( os.getenv("HOME") .. "/.hammerspoon/window.lua")
 hswm.window_handlers.init(GLOBAL)
 
