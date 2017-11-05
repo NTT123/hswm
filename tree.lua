@@ -1,45 +1,8 @@
-
 local pkg = {}
 
-local function cloneFrame(frame)
-    local f = hs.geometry({x = frame.x, y= frame.y, w= frame.w, h = frame.h})
-    return f
-end
-pkg.cloneFrame = cloneFrame
+local tools = dofile( os.getenv("HOME") .. "/.hammerspoon/tools.lua")
+local border = dofile( os.getenv("HOME") .. "/.hammerspoon/border.lua")
 
-local function cloneBorder(frame)
-    local f = {x = frame.x, y= frame.y, w= frame.w, h = frame.h}
-    return f
-end
-pkg.cloneBorder = cloneBorder
-
-
-local function create_canvas_border(frame)
-    local border = {}
-    border.action = "stroke"
-    border.strokeColor = {alpha = 1, red = 1.0, green = 1.0}
-    border.fillColor = { alpha = 1 }
-    border.antialias = false
-    border.arcRadii = false
-    border.canvasAlpha = 1.0
-    border.imageAlpha = 1.0
-    border.strokeWidth = 2
-    border.frame = cloneBorder(frame)
-    border.type = "rectangle"
-
-    return border
-end
-pkg.create_canvas_border = create_canvas_border
-
--- rounding up the coordinates in a grid of 10 pixels
-local function grid(frame)
-    local new = cloneFrame(frame)
-    new.x = math.ceil(frame.x / 10) * 10
-    new.y = math.ceil(frame.y / 10) * 10
-    new.w = math.floor(frame.w / 10) * 10
-    new.h = math.floor(frame.h / 10) * 10
-    return new
-end
 
 local function copyNode(fromA, toB)
     toB.frame = fromA.frame
@@ -75,10 +38,6 @@ local function initTreeforWorkSpace(padding)
 end
 
 pkg.initTreeforWorkSpace = initTreeforWorkSpace
-
-local function computeWindowFrame(nodeFrame) 
-    return nodeFrame
-end
 
 local function splitVertical(node, window)
     local leftNode = createNode(node)
@@ -195,10 +154,10 @@ local function travelTreeAndTiling(root, dic, pad)
     if root == nil then
         return 
     else
-        root.frame = grid(root.frame)
+        root.frame = tools.grid(root.frame)
         if root.windowId then
             local f = root.frame
-            local ff = cloneFrame(root.frame)
+            local ff = tools.cloneFrame(root.frame)
             ff.x = ff.x + pad
             ff.y = ff.y + pad
             ff.w = ff.w - 2*pad
@@ -269,7 +228,7 @@ local function retilingNodeWithFrame(node, frame)
         return 
     end
 
-    node.frame = cloneFrame(frame)
+    node.frame = tools.cloneFrame(frame)
     if not node.windowId then
         local rl = 1
         if node.isDividedHorizontal then
@@ -323,7 +282,7 @@ pkg.deleteWindowFromTree = function(root, windowID, global_padding)
             return
         end
 
-        local frame = cloneFrame(father.frame)
+        local frame = tools.cloneFrame(father.frame)
 
         if father.left.windowId == windowID then
             father.right.isDividedHorizontal = father.isDividedHorizontal
@@ -382,75 +341,6 @@ end
 
 pkg.findNodewithPointer = findNodewithPointer
 
-
-local function create_window_border(frame)
-    local border = hs.drawing.rectangle(hs.geometry.rect(frame))
-
-    border:setFill(false)
-    border:setStrokeWidth(5)
-    border:setStrokeColor({["red"]=1,["blue"]=0,["green"]=1,["alpha"]=0.9})
-    border = border:wantsLayer(true)
-    return border
-end
-
-local function rescaleBorder(node, canvas)
-    if node == nil then 
-        return 
-    end
-
-    if node.windowId then
-        return
-    end
-
-    node.left.border_ = cloneFrame(node.left.frame)
-    node.right.border_ = cloneFrame(node.right.frame)
-
-    local f1 = node.left.border_
-    local f2 = node.right.border_
-
-    if node.isDividedHorizontal then
-
-        local H = f1.h + f2.h
-        local r = f1.h / f2.h
-        local delta = node.border_.h - H
-        local h2 = delta / (r + 1.0)
-        local h1 = (delta - h2)
-        f1.h = f1.h + h1
-        f1.w = node.border_.w
-        f1.x = node.border_.x
-        f1.y = node.border_.y
-
-        f2.x = f1.x
-        f2.y = f1.y + f1.h
-        f2.h = node.border_.h - f1.h
-        f2.w = f1.w
-    else
-        local W = f1.w + f2.w
-        local r = f1.w / f2.w
-        local delta = node.border_.w - W
-        local w2 = delta / (r + 1)
-        local w1 = delta - w2
-
-        f1.w = f1.w + w1
-        f1.h = node.border_.h
-        f1.x = node.border_.x
-        f1.y = node.border_.y
-
-        f2.x = f1.x + f1.w
-        f2.y = f1.y
-        f2.w = node.border_.w  - f1.w
-        f2.h = f1.h
-    end
-
-    f1 = grid(f1)
-    f2 = grid(f2)
-
-    node.left.border_ = cloneFrame(f1)
-    node.right.border_ = cloneFrame(f2)
-    rescaleBorder(node.left, canvas)
-    rescaleBorder(node.right, canvas)
-end
-
 local function resizeNode(root, node, dx, dy)
 
 
@@ -468,8 +358,8 @@ local function resizeNode(root, node, dx, dy)
 
     if grandpa ~= nil and grandpa.isDividedHorizontal ~= father.isDividedHorizontal then
 
-        local f1 = cloneFrame(grandpa.left.frame)
-        local f2 = cloneFrame(grandpa.right.frame)
+        local f1 = tools.cloneFrame(grandpa.left.frame)
+        local f2 = tools.cloneFrame(grandpa.right.frame)
 
 
         if not grandpa.isDividedHorizontal then
@@ -494,23 +384,23 @@ local function resizeNode(root, node, dx, dy)
             f2.y = f1.y + f1.h
         end
 
-        f1 = grid(f1)
-        f2 = grid(f2)
+        f1 = tools.grid(f1)
+        f2 = tools.grid(f2)
 
-        grandpa.left.border_ = cloneFrame(f1)
-        grandpa.right.border_ = cloneFrame(f2)
+        grandpa.left.border_ = tools.cloneFrame(f1)
+        grandpa.right.border_ = tools.cloneFrame(f2)
 
-        rescaleBorder(grandpa.left, root.canvas)
-        rescaleBorder(grandpa.right, root.canvas)
+        border.rescaleBorder(grandpa.left, root.canvas)
+        border.rescaleBorder(grandpa.right, root.canvas)
     end
 
 
-    local f1 = cloneFrame(father.left.frame)
-    local f2 = cloneFrame(father.right.frame)
+    local f1 = tools.cloneFrame(father.left.frame)
+    local f2 = tools.cloneFrame(father.right.frame)
 
     if grandpa ~= nil and grandpa.isDividedHorizontal ~= father.isDividedHorizontal then
-        f1 = cloneFrame(father.left.border_)
-        f2 = cloneFrame(father.right.border_)
+        f1 = tools.cloneFrame(father.left.border_)
+        f2 = tools.cloneFrame(father.right.border_)
     end
 
     if not father.isDividedHorizontal then
@@ -532,14 +422,14 @@ local function resizeNode(root, node, dx, dy)
     end
 
     
-    f1 = grid(f1)
-    f2 = grid(f2)
+    f1 = tools.grid(f1)
+    f2 = tools.grid(f2)
 
-    father.left.border_ = cloneFrame(f1)
-    father.right.border_ = cloneFrame(f2)
+    father.left.border_ = tools.cloneFrame(f1)
+    father.right.border_ = tools.cloneFrame(f2)
 
-    rescaleBorder(father.left, root.canvas)
-    rescaleBorder(father.right, root.canvas)
+    border.rescaleBorder(father.left, root.canvas)
+    border.rescaleBorder(father.right, root.canvas)
 
 end
 
@@ -593,49 +483,6 @@ local function deleteZombies(root, winmap)
     end
 end
 
-
-local function convertFromBorderToFrame(root)
-
-    if root == nil then 
-        return 
-    end
-
-    if root.canvas ~= nil then
-        root.canvas:delete()
-        root.canvas = nil
-    end
-
-    if root.border_ ~= nil then
-        root.frame = cloneFrame(root.border_)
-        root.border_ = nil
-    end
-
-    convertFromBorderToFrame(root.left)
-    convertFromBorderToFrame(root.right)
-end
-
-pkg.convertFromBorderToFrame = convertFromBorderToFrame
-
-local function travelAndShowCanvas(root, canvas)
-    if root == nil then 
-        return
-    end
-
-    if root.windowId ~= nil and root.border_ ~= nil then
-        canvas:appendElements(create_canvas_border(root.border_))
-        return
-    end
-
-    if root.left ~= nil then
-        travelAndShowCanvas(root.left, canvas)
-    end
-
-    if root.right ~= nil then
-        travelAndShowCanvas(root.right, canvas)
-    end
-end
-
-pkg.travelAndShowCanvas = travelAndShowCanvas
 
 
 
@@ -726,6 +573,132 @@ local function getNodeFromWindowID(root, id)
 end
 
 pkg.getNodeFromWindowID = getNodeFromWindowID
+
+local function swap(father)
+    local left_frame = nil
+    local right_frame = nil
+    
+    if father.left ~= nil then
+        left_frame = tools.cloneFrame(father.left.frame)
+    end
+
+    if father.right ~= nil then
+        right_frame = tools.cloneFrame(father.right.frame)
+    end
+
+    retilingNodeWithFrame(father.right, left_frame)
+    retilingNodeWithFrame(father.left, right_frame)
+
+    local tmp = father.left
+    father.left = father.right
+    father.right = tmp
+
+    local t = father.left.border
+    father.left.border = father.right.border
+    father.right.border = t
+end
+
+local function swap_hv(root)
+
+    local fw = hs.window.focusedWindow()
+
+    local focusedWindowID = nil
+
+    if fw ~= nil then
+        focusedWindowID = fw:id()
+    else
+        return
+    end
+
+    if focusedWindowID == nil then 
+        return
+    end
+
+    local father = findFatherOfNode(root, focusedWindowID)
+
+    if father == nil then
+        return
+    end
+
+    father.isDividedHorizontal = not father.isDividedHorizontal
+    retilingNodeWithFrame(father, tools.cloneFrame(father.frame))
+end
+pkg.swap_hv = swap_hv
+
+local function swap_x(root)
+    local fw = hs.window.focusedWindow()
+
+    local focusedWindowID = nil
+
+    if fw ~= nil then
+        focusedWindowID = fw:id()
+    else
+        return
+    end
+
+    if focusedWindowID == nil then 
+        return
+    end
+
+    local father = findFatherOfNode(root, focusedWindowID)
+
+    if father == nil then 
+        return
+    end
+
+    if father.isDividedHorizontal == true then
+        swap(father)
+    else
+        local grandpa = fatherOfNode(root, father)
+        if grandpa == nil then
+            return 
+        end
+        if grandpa.isDividedHorizontal == true then
+            swap(grandpa)
+        end
+    end
+end
+pkg.swap_x = swap_x
+
+local function swap_y(root)
+
+    local fw = hs.window.focusedWindow()
+
+    local focusedWindowID = nil
+
+    if fw ~= nil then
+        focusedWindowID = fw:id()
+    else
+        return
+    end
+    
+    if focusedWindowID == nil then 
+        return
+    end
+    
+    local father = findFatherOfNode(root, focusedWindowID)
+    if father == nil then
+        return
+    end
+
+    if father.isDividedHorizontal == false then
+        swap(father)
+    else
+        local grandpa = fatherOfNode(root, father)
+        if grandpa == nil then
+            return 
+        end
+        if grandpa.isDividedHorizontal == false then
+            swap(grandpa)
+        end
+    end
+end
+
+pkg.swap_y = swap_y
+
+pkg.init = function(GLOBAL)
+    pkg.GLOBAL = GLOBAL
+end
 
 
 return pkg
