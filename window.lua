@@ -25,9 +25,7 @@ local isResize = false
 
 local spaces = require("hs._asm.undocumented.spaces")
 
--- a placeholder
-pkg.window_manager = function()
-end
+local floatingWindows = {}
 
 local function space_manager(spaceid)
     spaceid = spaces.activeSpace()
@@ -43,15 +41,13 @@ local function space_manager(spaceid)
         current_space.root = tree.initTreeforWorkSpace(global_padding)
     end
 
-    pkg.root = nil
-    pkg.root = current_space.root
+    pkg.GLOBAL.root = nil
+    pkg.GLOBAL.root = current_space.root
     if previous_border ~= nil then
         previous_border:hide()
     end
 
     hs.timer.doAfter(0, pkg.window_manager)
-
-    pkg.GLOBAL.root = pkg.root
 
     return false
 end
@@ -91,7 +87,7 @@ local function window_manager(t)
 
     for i = 1, #ws do
         local w = ws[i]
-        if w:application():name() ~= "Hammerspoon" and w:isStandard() then
+        if w:application():name() ~= "Hammerspoon" and w:isStandard() and floatingWindows[w:id()] == nil then
             if not mmm[w:id()] then
                 if father == nil then
                     tree.insertToTree(root, w)
@@ -163,6 +159,42 @@ end
 
 pkg.window_manager = window_manager
 
+local function watchWindow(win, initializing)
+  local appWindows = watchers[win:application():pid()].windows
+  if  win:isStandard() and not appWindows[win:id()] and win:application():name() ~= "Hammerspoon" then
+    local watcher = win:newWatcher(pkg.handleWindowEvent, {pid=win:pid(), id=win:id()})
+    appWindows[win:id()] = watcher
+
+    watcher:start({events.elementDestroyed})
+
+    if not initializing then
+    end
+  end
+end
+
+pkg.watchWindow = watchWindow
+
+local function watchApp(app, initializing)
+  if watchers[app:pid()] then return end
+
+  local watcher = app:newWatcher(pkg.handleAppEvent)
+  watchers[app:pid()] = {watcher = watcher, windows = {}}
+
+  watcher:start({events.windowCreated, events.focusedWindowChanged, events.mainWindowChanged, events.titleChanged})
+
+  -- Watch any windows that already exist
+  for i, window in pairs(app:allWindows()) do
+
+    bdw[window:id()] = border.init_border()
+    bdw[window:id()]:hide()
+
+    watchWindow(window, initializing)
+  end
+end
+
+pkg.watchApp = watchApp
+
+
 local function handleGlobalAppEvent(name, event, app)
   if  event == hs.application.watcher.launched then
     watchApp(app)
@@ -192,30 +224,24 @@ local function handleWindowEvent(win, event, watcher, info)
         bdw[win:id()]:delete()
         bdw[win:id()] = nil 
     end
-    tree.deleteWindowFromTree(root, win:id(), global_padding)
+
+    if floatingWindows[win:id()] ~= nil then
+        floatingWindows[win:id()] = nil 
+    end
+
+    tree.deleteWindowFromTree(pkg.GLOBAL.root, win:id(), global_padding)
+    if pkg.GLOBAL.root == nil then
+        space_manager()
+    end
   end
 
-  hs.timer.doAfer(0, window_manager)
+  hs.timer.doAfter(0, window_manager)
 
   return false
 end
 
 pkg.handleWindowEvent = handleWindowEvent
 
-local function watchWindow(win, initializing)
-  local appWindows = watchers[win:application():pid()].windows
-  if  win:isStandard() and not appWindows[win:id()] and win:application():name() ~= "Hammerspoon" then
-    local watcher = win:newWatcher(pkg.handleWindowEvent, {pid=win:pid(), id=win:id()})
-    appWindows[win:id()] = watcher
-
-    watcher:start({events.elementDestroyed})
-
-    if not initializing then
-    end
-  end
-end
-
-pkg.watchWindow = watchWindow
 
 local function handleAppEvent(element, event)
   if event == events.windowCreated then
@@ -230,26 +256,6 @@ end
 
 pkg.handleAppEvent = handleAppEvent
 
-
-local function watchApp(app, initializing)
-  if watchers[app:pid()] then return end
-
-  local watcher = app:newWatcher(pkg.handleAppEvent)
-  watchers[app:pid()] = {watcher = watcher, windows = {}}
-
-  watcher:start({events.windowCreated, events.focusedWindowChanged, events.mainWindowChanged, events.titleChanged})
-
-  -- Watch any windows that already exist
-  for i, window in pairs(app:allWindows()) do
-
-    bdw[window:id()] = border.init_border()
-    bdw[window:id()]:hide()
-
-    watchWindow(window, initializing)
-  end
-end
-
-pkg.watchApp = watchApp
 
 
 local windowResizeAndSwap = function(ev)
@@ -415,7 +421,6 @@ local function onlyShiftCmd(ev)
     return false 
 end
 
-local tt = 0
 local function onlyShiftCmd3(ev)
     windowResizeAndSwap(ev)
     return false 
@@ -423,7 +428,6 @@ end
 
 
 local ttt = hs.eventtap.event.types
-
 pkg.resizeWatcher1 = hs.eventtap.new({ttt.rightMouseUp}, onlyShiftCmd3)
 
 pkg.resizeWatcher1:start()
@@ -458,5 +462,15 @@ local function init(GLOBAL)
 end
 
 pkg.init = init
+
+local function toggleFloat(windowID)
+    if floatingWindows[windowID] == nil then
+        -- something
+    else
+        --
+    end
+end
+
+pkg.toggleFloat = toggleFloat
 
 return pkg

@@ -274,6 +274,9 @@ pkg.fatherOfNode = fatherOfNode
 pkg.retilingNodeWithFrame = retilingNodeWithFrame
 
 pkg.deleteWindowFromTree = function(root, windowID, global_padding)
+    if root == nil then
+        return
+    end
     if root.windowId == windowID then
         root = initTreeforWorkSpace(global_padding)
     else
