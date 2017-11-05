@@ -3,7 +3,7 @@ local events = hs.uielement.watcher
 
 local spaces = require("hs._asm.undocumented.spaces")
 
-local global_padding = 50
+local global_padding = 40
 local window_padding = 5
 
 
@@ -16,15 +16,6 @@ local workspace = {}
 local bdw = {}
 
 hs.window.animationDuration = 0.0
-
-local function create_window_border(frame)
-    local border = hs.drawing.rectangle(hs.geometry.rect(frame))
-    border:setFill(false)
-    border:setStrokeWidth(5)
-    border:setStrokeColor({["red"]=1,["blue"]=0,["green"]=1,["alpha"]=0.9})
-
-    return border
-end
 
 local function init_border()
     local Border = hs.drawing.rectangle(hs.geometry.rect(0,0,0,0))
@@ -331,9 +322,7 @@ local ppp = function(ev)
 
             disableClick = false
             isResize = true
-            -- tree.travelAndShowBorder(root, create_window_border, root.canvas)
             mouse_loc = hs.mouse.getAbsolutePosition()
-            -- tree.travelAndShowBorder(root, create_window_border)
             cur_node = tree.findNodewithPointer(root, mouse_loc)
 
             for i, appWatcher in pairs(watchers) do
@@ -356,7 +345,6 @@ local ppp = function(ev)
 
             isSwap = true
             mouse_loc = hs.mouse.getAbsolutePosition()
-            -- tree.travelAndShowBorder(root, create_window_border)
             cur_node = tree.findNodewithPointer(root, mouse_loc)
 
             root.canvas = hs.canvas.new(tree.cloneBorder(hs.screen.mainScreen():frame()))

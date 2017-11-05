@@ -380,9 +380,7 @@ local function findNodewithPointer(root, point)
     return nil
 end
 
-
 pkg.findNodewithPointer = findNodewithPointer
-
 
 
 local function create_window_border(frame)
@@ -640,51 +638,6 @@ end
 pkg.travelAndShowCanvas = travelAndShowCanvas
 
 
-local function travelAndShowBorder(root, create_border, canvas)
-    if root == nil then 
-        return
-    end
-
-    if not root.border_ then 
-        root.border_ = cloneFrame(root.frame)
-    end
-
-    if root.windowId ~= nil then
-        root.border_ = cloneFrame(root.frame)
-        canvas:appendElements(create_canvas_border(root.border_))
-        return
-    end
-
-    if root.left ~= nil then
-        travelAndShowBorder(root.left, create_border, canvas)
-    end
-
-    if root.right ~= nil then
-        travelAndShowBorder(root.right, create_border, canvas)
-    end
-end
-
-local function travelAndHideBorder(root)
-    if root == nil then 
-        return
-    end
-
-    if root.border ~= nil then
-        root.border:delete()
-        root.border = 0
-    end
-
-    if root.left ~= nil then
-        travelAndHideBorder(root.left)
-    end
-
-    if root.right ~= nil then
-        travelAndHideBorder(root.right)
-    end
-end
-
-pkg.travelAndShowBorder = travelAndShowBorder
-pkg.travelAndHideBorder = travelAndHideBorder
 
 pkg.deleteZombies = deleteZombies
 
