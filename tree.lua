@@ -6,14 +6,34 @@ local function cloneFrame(frame)
     return f
 end
 
+local function cloneBorder(frame)
+    local f = {x = frame.x, y= frame.y, w= frame.w, h = frame.h}
+    return f
+end
+
+
+pkg.cloneBorder = cloneBorder
+
 pkg.cloneFrame = cloneFrame
+
+local function create_canvas_border(frame)
+    local border = {}
+    border.action = "stroke"
+    border.strokeColor = {alpha = 1.0, red = 1.0, green = 1.0}
+    border.frame = cloneBorder(frame)
+    border.type = "rectangle"
+
+    return border
+end
+
+pkg.create_canvas_border = create_canvas_border
 
 local function grid(frame)
     local new = cloneFrame(frame)
-    new.x = math.ceil(frame.x / 5) * 5
-    new.y = math.ceil(frame.y / 5) * 5
-    new.w = math.floor(frame.w / 5) * 5
-    new.h = math.floor(frame.h / 5) * 5
+    new.x = math.ceil(frame.x / 10) * 10
+    new.y = math.ceil(frame.y / 10) * 10
+    new.w = math.floor(frame.w / 10) * 10
+    new.h = math.floor(frame.h / 10) * 10
     return new
 end
 
@@ -45,7 +65,8 @@ local function initTreeforWorkSpace(padding)
     local tree = createNode()
     local f = hs.screen.mainScreen():frame()
     
-    tree.frame = hs.geometry(f.x + padding, f.y + padding, f.w - 2 * padding, f.h - 2*padding)
+    tree.frame = hs.geometry.rect(f.x + padding, f.y + padding, f.w - 2 * padding, f.h - 2*padding)
+
 
     return tree
 end
@@ -389,65 +410,79 @@ end
 
 pkg.findNodewithPointer = findNodewithPointer
 
-local function rescaleBorder(node) 
+
+
+local function create_window_border(frame)
+    local border = hs.drawing.rectangle(hs.geometry.rect(frame))
+
+    border:setFill(false)
+    border:setStrokeWidth(5)
+    border:setStrokeColor({["red"]=1,["blue"]=0,["green"]=1,["alpha"]=0.9})
+    border = border:wantsLayer(true)
+    return border
+end
+
+local function rescaleBorder(node, canvas)
     if node == nil then 
         return 
     end
+
     if node.windowId then
-        node.border:show()
         return
     end
 
-    node.left.border:setFrame(node.left.frame)
-    node.right.border:setFrame(node.right.frame)
+    node.left.border_ = cloneFrame(node.left.frame)
+    node.right.border_ = cloneFrame(node.right.frame)
 
-    local f1 = node.left.border:frame()
-    local f2 = node.right.border:frame()
+    local f1 = node.left.border_
+    local f2 = node.right.border_
 
     if node.isDividedHorizontal then
 
         local H = f1.h + f2.h
         local r = f1.h / f2.h
-        local delta = node.border:frame().h - H
-        local h2 = delta / 2
-        local h1 = delta / 2
+        local delta = node.border_.h - H
+        local h2 = delta / (r + 1.0)
+        local h1 = (delta - h2)
         f1.h = f1.h + h1
-        f1.w = node.border:frame().w
-        f1.x = node.border:frame().x
-        f1.y = node.border:frame().y
+        f1.w = node.border_.w
+        f1.x = node.border_.x
+        f1.y = node.border_.y
 
         f2.x = f1.x
         f2.y = f1.y + f1.h
-        f2.h = node.border:frame().h - f1.h
+        f2.h = node.border_.h - f1.h
         f2.w = f1.w
     else
         local W = f1.w + f2.w
         local r = f1.w / f2.w
-        local delta = node.border:frame().w - W
-        local w2 = delta / 2
-        local w1 = delta / 2
+        local delta = node.border_.w - W
+        local w2 = delta / (r + 1)
+        local w1 = delta - w2
 
         f1.w = f1.w + w1
-        f1.h = node.border:frame().h
-        f1.x = node.border:frame().x
-        f1.y = node.border:frame().y
+        f1.h = node.border_.h
+        f1.x = node.border_.x
+        f1.y = node.border_.y
 
         f2.x = f1.x + f1.w
         f2.y = f1.y
-        f2.w = node.border:frame().w  - f1.w
+        f2.w = node.border_.w  - f1.w
         f2.h = f1.h
     end
 
     f1 = grid(f1)
     f2 = grid(f2)
 
-    node.left.border:setFrame(f1)
-    node.right.border:setFrame(f2)
-    rescaleBorder(node.left)
-    rescaleBorder(node.right)
+    node.left.border_ = cloneFrame(f1)
+    node.right.border_ = cloneFrame(f2)
+    rescaleBorder(node.left, canvas)
+    rescaleBorder(node.right, canvas)
 end
 
 local function resizeNode(root, node, dx, dy)
+
+
     if root == nil or node == nil then
         return
     end
@@ -458,17 +493,70 @@ local function resizeNode(root, node, dx, dy)
         return
     end
 
+    local grandpa = findFather(root, father)
+
+    if grandpa ~= nil and grandpa.isDividedHorizontal ~= father.isDividedHorizontal then
+
+        local f1 = cloneFrame(grandpa.left.frame)
+        local f2 = cloneFrame(grandpa.right.frame)
+
+
+        if not grandpa.isDividedHorizontal then
+            f1.w = f1.w + dx
+            f2.w = grandpa.frame.w - f1.w
+
+            if f2.w < 50 then 
+                f2.w = 50
+                f1.w = grandpa.frame.w - f2.w
+            end
+
+            f2.x = f1.x + f1.w
+        else
+            f1.h = f1.h + dy
+            f2.h = grandpa.frame.h - f1.h
+
+            if f2.h < 50 then
+                f2.h = 50
+                f1.h = grandpa.frame.h - f2.h
+            end
+
+            f2.y = f1.y + f1.h
+        end
+
+        f1 = grid(f1)
+        f2 = grid(f2)
+
+        grandpa.left.border_ = cloneFrame(f1)
+        grandpa.right.border_ = cloneFrame(f2)
+
+        rescaleBorder(grandpa.left, root.canvas)
+        rescaleBorder(grandpa.right, root.canvas)
+    end
+
+
     local f1 = cloneFrame(father.left.frame)
     local f2 = cloneFrame(father.right.frame)
 
+    if grandpa ~= nil and grandpa.isDividedHorizontal ~= father.isDividedHorizontal then
+        f1 = cloneFrame(father.left.border_)
+        f2 = cloneFrame(father.right.border_)
+    end
 
     if not father.isDividedHorizontal then
         f1.w = f1.w + dx
         f2.w = father.frame.w - f1.w
+        if f2.w < 100 then
+            f2.w = 100
+            f1.w = father.frame.w - f2.w
+        end
         f2.x = f1.x + f1.w
     else
         f1.h = f1.h + dy
         f2.h = father.frame.h - f1.h
+        if f2.h < 100 then
+            f2.h = 100
+            f1.h = father.frame.h - f2.h
+        end
         f2.y = f1.y + f1.h
     end
 
@@ -476,11 +564,12 @@ local function resizeNode(root, node, dx, dy)
     f1 = grid(f1)
     f2 = grid(f2)
 
-    father.left.border:setFrame(f1)
-    father.right.border:setFrame(f2)
+    father.left.border_ = cloneFrame(f1)
+    father.right.border_ = cloneFrame(f2)
 
-    rescaleBorder(father.left)
-    rescaleBorder(father.right)
+    rescaleBorder(father.left, root.canvas)
+    rescaleBorder(father.right, root.canvas)
+
 end
 
 pkg.resizeNode = resizeNode
@@ -540,10 +629,14 @@ local function convertFromBorderToFrame(root)
         return 
     end
 
-    if root.border ~= nil then
-        root.frame = cloneFrame(root.border:frame())
-        root.border:delete()
-        root.border = nil
+    if root.canvas ~= nil then
+        root.canvas:delete()
+        root.canvas = nil
+    end
+
+    if root.border_ ~= nil then
+        root.frame = cloneFrame(root.border_)
+        root.border_ = nil
     end
 
     convertFromBorderToFrame(root.left)
@@ -552,26 +645,49 @@ end
 
 pkg.convertFromBorderToFrame = convertFromBorderToFrame
 
-local function travelAndShowBorder(root, create_border)
+local function travelAndShowCanvas(root, canvas)
     if root == nil then 
         return
     end
 
-    if not root.border then 
-        root.border = create_border(root.frame)
-    end
-
-    if root.windowId ~= nil then
-        root.border:setFrame(root.frame)
+    if root.windowId ~= nil and root.border_ ~= nil then
+        canvas:appendElements(create_canvas_border(root.border_))
         return
     end
 
     if root.left ~= nil then
-        travelAndShowBorder(root.left, create_border)
+        travelAndShowCanvas(root.left, canvas)
     end
 
     if root.right ~= nil then
-        travelAndShowBorder(root.right, create_border)
+        travelAndShowCanvas(root.right, canvas)
+    end
+end
+
+pkg.travelAndShowCanvas = travelAndShowCanvas
+
+
+local function travelAndShowBorder(root, create_border, canvas)
+    if root == nil then 
+        return
+    end
+
+    if not root.border_ then 
+        root.border_ = cloneFrame(root.frame)
+    end
+
+    if root.windowId ~= nil then
+        root.border_ = cloneFrame(root.frame)
+        canvas:appendElements(create_canvas_border(root.border_))
+        return
+    end
+
+    if root.left ~= nil then
+        travelAndShowBorder(root.left, create_border, canvas)
+    end
+
+    if root.right ~= nil then
+        travelAndShowBorder(root.right, create_border, canvas)
     end
 end
 
@@ -582,8 +698,7 @@ local function travelAndHideBorder(root)
 
     if root.border ~= nil then
         root.border:delete()
-        root.border = nil
-        return
+        root.border = 0
     end
 
     if root.left ~= nil then

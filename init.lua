@@ -3,9 +3,8 @@ local eventtap = require("hs.eventtap")
 
 local spaces = require("hs._asm.undocumented.spaces")
 
-
-global_padding = 30
-window_padding = 10
+global_padding = 50
+window_padding = 5
 
 
 windowList = {}
@@ -110,7 +109,7 @@ function window_manager(t)
             local f = function()
                 w:setFrame(dic[w:id()])
             end
-            hs.timer.doAfter(0, f)
+            f()
         end
     end
 
@@ -142,7 +141,7 @@ function window_manager(t)
         previous_border = bdw[fw:id()]
 
     end
-    hs.timer.doAfter(0, f)
+    f()
 end
 
 draw_border = function()
@@ -279,28 +278,23 @@ disableClick = false
 isSwap = false
 isResize = false
 
+
 local ppp = function(ev)
     local result = ev:getFlags().ctrl
-    for k,v in pairs(ev:getFlags()) do
-        if k ~= "ctrl" and v then
-            result = false
-            break
-        end
-    end
 
-    if result then
-        disableClick = true
-    end
-
-    if (ev:getType() == hs.eventtap.event.types.flagsChanged and not result) or
-        ev:getType() == hs.eventtap.event.types.leftMouseUp or 
+    if ev:getType() == hs.eventtap.event.types.leftMouseUp or 
+        ev:getType() == hs.eventtap.event.types.flagsChanged or 
         ev:getType() == hs.eventtap.event.types.rightMouseUp then
 
         disableClick = false
 
+        if root.canvas ~= nil then
+            root.canvas:delete()
+            root.canvas = nil
+        end
+
         if isSwap then
             isSwap = false
-            tree.travelAndHideBorder(root)
 
             if cur_node ~= nil and new_node ~= nil and cur_node ~= new_node then
                 local t = cur_node.windowId
@@ -323,13 +317,22 @@ local ppp = function(ev)
     end
 
     if result then
+        disableClick = true
+    end
+
+    if disableClick then
         if ev:getType() == hs.eventtap.event.types.rightMouseDown then
+
+            -- root.canvas = hs.canvas.new(tree.cloneBorder(hs.screen.mainScreen():frame()))
+            -- root.canvas:wantsLayer(true)
+            -- root.canvas:show()
+
+            disableClick = false
             isResize = true
-            tree.travelAndShowBorder(root, create_window_border)
+            -- tree.travelAndShowBorder(root, create_window_border, root.canvas)
             mouse_loc = hs.mouse.getAbsolutePosition()
             -- tree.travelAndShowBorder(root, create_window_border)
             cur_node = tree.findNodewithPointer(root, mouse_loc)
-
 
             for i, appWatcher in pairs(watchers) do
                if appWatcher then
@@ -344,83 +347,125 @@ local ppp = function(ev)
 
     end
 
-
-    if result then
+    if disableClick then
         if ev:getType() == hs.eventtap.event.types.leftMouseDown then
+
+            disableClick = false
+
             isSwap = true
             mouse_loc = hs.mouse.getAbsolutePosition()
             -- tree.travelAndShowBorder(root, create_window_border)
             cur_node = tree.findNodewithPointer(root, mouse_loc)
+
+            root.canvas = hs.canvas.new(tree.cloneBorder(hs.screen.mainScreen():frame()))
+
+            root.canvas:wantsLayer(true)
+            root.canvas:show()
+
             if cur_node ~= nil then
-                cur_node.border = create_window_border(cur_node.frame)
-                cur_node.border:show()
+                root.canvas:appendElements( tree.create_canvas_border(cur_node.frame) )
             end
 
             return true
-        else
-            if ev:getType() == hs.eventtap.event.types.rightMouseDragged then
-                local ml = hs.mouse.getAbsolutePosition()
-                local dx = ml.x - mouse_loc.x
-                local dy = ml.y - mouse_loc.y
-                tree.resizeNode(root, cur_node, dx, dy)
-                return false
-            end
+        end
+    end
 
-            if ev:getType() == hs.eventtap.event.types.leftMouseDragged then
+    if isResize then
+        if ev:getType() == hs.eventtap.event.types.rightMouseDragged then
+
+            local t = root.canvas
+
+            root.canvas = hs.canvas.new(tree.cloneBorder(hs.screen.mainScreen():frame()))
+
             local ml = hs.mouse.getAbsolutePosition()
-            local temp_new_node = new_node
-            new_node = tree.findNodewithPointer(root, ml)
-            if new_node == cur_node and temp_new_node ~= cur_node and temp_new_node ~= nil and temp_new_node.border ~= nil then
-                temp_new_node.border:delete()
-                temp_new_node.border = nil
-            end
-            if new_node ~= nil and new_node ~= cur_node then
-                if temp_new_node ~= nil and temp_new_node.border ~= nil and temp_new_node ~= new_node and temp_new_node ~= cur_node then
-                    temp_new_node.border:delete()
-                    temp_new_node.border = nil
-                end
-
-                if new_node.border ~= nil then
-                    new_node.border:setFrame(new_node.frame)
-                else
-                    new_node.border = create_window_border(new_node.frame)
-                end
-                new_node.border:show()
-            end
             local dx = ml.x - mouse_loc.x
             local dy = ml.y - mouse_loc.y
-            return false
+            tree.resizeNode(root, cur_node, dx, dy)
+            root.canvas:wantsLayer(true)
+            tree.travelAndShowCanvas(root, root.canvas)
+            root.canvas:show()
+
+            if t ~= nil then
+                t:delete()
             end
+
+
+            return false
         end
+    end
+
+    if isSwap then
+        if ev:getType() == hs.eventtap.event.types.leftMouseDragged then
+        local ml = hs.mouse.getAbsolutePosition()
+        local temp_new_node = new_node
+
+        new_node = tree.findNodewithPointer(root, ml)
+
+        local tt = root.canvas
+
+        root.canvas = hs.canvas.new(tree.cloneBorder(hs.screen.mainScreen():frame()))
+        root.canvas:wantsLayer(true)
+        root.canvas:show()
+
+        if cur_node ~= nil then
+            root.canvas:appendElements( tree.create_canvas_border(cur_node.frame) )
+        end
+
+        if new_node ~= nil then
+            root.canvas:appendElements( tree.create_canvas_border(new_node.frame) )
+        end
+
+        if tt ~= nil then
+            tt:delete()
+            tt = nil
+        end
+
         return false
+        end
     end
 
     return false
 end
+
 --
 -- verify that *only* the ctrl key flag is being pressed
-function onlyShiftCmd(ev)
+local function onlyShiftCmd(ev)
 
     hs.timer.doAfter(0, function()
         ppp(ev)
     end)
 
     if disableClick then
-        if ev:getType() == hs.eventtap.event.types.leftMouseDown or
-        ev:getType() == hs.eventtap.event.types.rightMouseDown then
+        if ev:getType() == hs.eventtap.event.types.leftMouseDown or ev:getType() == hs.eventtap.event.types.rightMouseDown then
             return true
         end
     end
+
+    return false 
+end
+
+local tt = 0
+local function onlyShiftCmd3(ev)
+    ppp(ev)
     return false 
 end
 
 
+
 ttt = hs.eventtap.event.types
-resizeWatcher = hs.eventtap.new({ttt.flagsChanged, ttt.keyDown, ttt.keyUp, ttt.leftMouseDown, ttt.leftMouseDragged, ttt.rightMouseDragged, ttt.leftMouseUp, ttt.rightMouseDown, ttt.rightMouseUp}, onlyShiftCmd)
+resizeWatcher1 = hs.eventtap.new({ttt.rightMouseUp}, onlyShiftCmd3)
 
-resizeWatcher:start()
+resizeWatcher1:start()
 
-function moveFocuses(direction)
+resizeWatcher3 = hs.eventtap.new({ttt.rightMouseDragged}, onlyShiftCmd)
+resizeWatcher3:start()
+
+resizeWatcher2 = hs.eventtap.new({ttt.flagsChanged, ttt.keyDown, ttt.keyUp, ttt.leftMouseDown, ttt.leftMouseDragged, ttt.leftMouseUp, ttt.rightMouseDown}, onlyShiftCmd)
+
+resizeWatcher2:start()
+
+
+local function moveFocuses(direction)
     local fw = hs.window.focusedWindow()
     if fw ~= nil then
         focusedWindowID = fw:id()
@@ -501,6 +546,7 @@ function init()
   local apps = hs.application.runningApplications()
   for i = 1, #apps do
       if apps[i]:name() ~= "Hammerspoon" then
+          print(apps[i]:name())
           watchApp(apps[i], true)
       end
   end
@@ -570,19 +616,16 @@ function handleWindowEvent(win, event, watcher, info)
   if event == events.elementDestroyed then
     watcher:stop()
     watchers[info.pid].windows[info.id] = nil
-    local funt = function ()
-        if bdw[win:id()] ~= nil then
-            bdw[win:id()]:delete()
-            bdw[win:id()] = nil 
-        end
-        tree.deleteWindowFromTree(root, win:id())
-        hs.timer.doAfter(0, window_manager)
+    if bdw[win:id()] ~= nil then
+        bdw[win:id()]:delete()
+        bdw[win:id()] = nil 
     end
-    hs.timer.doAfter(0, funt)
-  else
-    -- Handle other events...
+    tree.deleteWindowFromTree(root, win:id())
+    window_manager()
   end
-  hs.timer.doAfter(0, draw_border)
+
+  draw_border()
+
   return false
 end
 
