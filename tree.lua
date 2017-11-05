@@ -10,7 +10,7 @@ local function copyNode(fromA, toB)
     toB.right = fromA.right
     toB.isDividedHorizontal = fromA.isDividedHorizontal
     toB.isAvailable = fromA.isAvailable
-    toB.windowId = fromA.windowId
+    toB.windowID = fromA.windowID
 end
 
 local function createNode(father)
@@ -19,7 +19,7 @@ local function createNode(father)
     node.right = nil
     node.isDividedHorizontal = false
     node.isAvailable = true
-    node.windowId = nil
+    node.windowID = nil
     node.frame = hs.geometry.rect(0, 0, 0, 0)
     node.floating = false
     node.father = father
@@ -45,18 +45,18 @@ local function splitVertical(node, window)
 
     leftNode.frame = hs.geometry(node.frame.x, node.frame.y, 0.7*node.frame.w, node.frame.h)
 
-    leftNode.windowId = node.windowId
+    leftNode.windowID = node.windowID
     leftNode.isAvailable = false
     leftNode.isDividedHorizontal = true
 
     rightNode.frame = hs.geometry(node.frame.x + 0.7*node.frame.w , node.frame.y, 0.3*node.frame.w, node.frame.h)
     rightNode.isAvailable = false
-    rightNode.windowId = window:id()
+    rightNode.windowID = window:id()
     rightNode.isDividedHorizontal = true
 
     node.left = leftNode
     node.right = rightNode
-    node.windowId = nil
+    node.windowID = nil
     node.splitHorizontal = false
 end
 
@@ -64,19 +64,19 @@ local function splitHorizontal(node, window)
     local leftNode = createNode(node)
     local rightNode = createNode(node)
     leftNode.frame = hs.geometry(node.frame.x, node.frame.y, node.frame.w, 0.7*node.frame.h)
-    leftNode.windowId = node.windowId
+    leftNode.windowID = node.windowID
     leftNode.isAvailable = false
     leftNode.isDividedHorizontal = false
 
 
     rightNode.frame = hs.geometry(node.frame.x, node.frame.y + 0.7*node.frame.h, node.frame.w, 0.3*node.frame.h )
     rightNode.isAvailable = false
-    rightNode.windowId = window:id()
+    rightNode.windowID = window:id()
     rightNode.isDividedHorizontal = false
 
     node.left = leftNode
     node.right = rightNode
-    node.windowId = nil
+    node.windowID = nil
     node.splitHorizontal = true
 end
 
@@ -117,10 +117,10 @@ pkg.insertToNode = insertToNode
 
 local function insertToTree(root, window) 
     if root.isAvailable then
-        root.windowId = window:id()
+        root.windowID = window:id()
         root.isAvailable = false
     else
-        if root.windowId then
+        if root.windowID then
             if root.isDividedHorizontal then
                 splitHorizontal(root, window)
             else
@@ -145,8 +145,8 @@ local function travelTree(root, dic)
     if root == nil or dic == nil then
         return 
     else
-        if root.windowId then
-            dic[root.windowId] = 1
+        if root.windowID then
+            dic[root.windowID] = 1
         else
             travelTree(root.left, dic)
             travelTree(root.right, dic)
@@ -161,14 +161,14 @@ local function travelTreeAndTiling(root, dic, pad)
         return 
     else
         root.frame = tools.grid(root.frame)
-        if root.windowId then
+        if root.windowID then
             local f = root.frame
             local ff = tools.cloneFrame(root.frame)
             ff.x = ff.x + pad
             ff.y = ff.y + pad
             ff.w = ff.w - 2*pad
             ff.h = ff.h - 2*pad
-            dic[root.windowId] = ff
+            dic[root.windowID] = ff
         else
             travelTreeAndTiling(root.left, dic, pad)
             travelTreeAndTiling(root.right, dic, pad)
@@ -185,13 +185,13 @@ local function findFatherOfNode(root, ID)
     end
 
     if root.left ~= nil then
-        if root.left.windowId == ID then
+        if root.left.windowID == ID then
             return root
         end
     end
 
     if root.right ~= nil then
-        if root.right.windowId == ID then
+        if root.right.windowID == ID then
             return root
         end
     end
@@ -235,7 +235,7 @@ local function retilingNodeWithFrame(node, frame)
     end
 
     node.frame = tools.cloneFrame(frame)
-    if not node.windowId then
+    if not node.windowID then
         local rl = 1
         if node.isDividedHorizontal then
             rl = divideFrameHorizontal(frame)
@@ -283,7 +283,7 @@ pkg.deleteWindowFromTree = function(root, windowID, global_padding)
     if root == nil then
         return
     end
-    if root.windowId == windowID then
+    if root.windowID == windowID then
         root = initTreeforWorkSpace(global_padding)
     else
         local father = findFatherOfNode(root, windowID)
@@ -293,7 +293,7 @@ pkg.deleteWindowFromTree = function(root, windowID, global_padding)
 
         local frame = tools.cloneFrame(father.frame)
 
-        if father.left.windowId == windowID then
+        if father.left.windowID == windowID then
             father.right.isDividedHorizontal = father.isDividedHorizontal
             retilingNodeWithFrame(father.right, frame)
             copyNode(father.right, father)
@@ -331,7 +331,7 @@ local function findNodewithPointer(root, point)
         return nil
     end
 
-    if root.windowId then 
+    if root.windowID then 
         return root
     else
         local rl = findNodewithPointer(root.left, point)
@@ -451,8 +451,8 @@ local function deleteZombies(root, winmap)
         return
     end
 
-    if root.left == nil and root.right == nil and not root.windowId then
-        root.windowId = -1
+    if root.left == nil and root.right == nil and not root.windowID then
+        root.windowID = -1
     end
 
     if root.left == nil and root.right == nil then
@@ -460,8 +460,8 @@ local function deleteZombies(root, winmap)
     end
 
     if root.left ~= nil then
-        if root.left.windowId and (not winmap[root.left.windowId]) then
-            pkg.deleteWindowFromTree(root, root.left.windowId)
+        if root.left.windowID and (not winmap[root.left.windowID]) then
+            pkg.deleteWindowFromTree(root, root.left.windowID)
         else 
             deleteZombies(root.left, winmap)
         end
@@ -476,8 +476,8 @@ local function deleteZombies(root, winmap)
     end
 
     if root.right ~= nil then
-        if root.right.windowId and (not winmap[root.right.windowId]) then
-            pkg.deleteWindowFromTree(root, root.right.windowId)
+        if root.right.windowID and (not winmap[root.right.windowID]) then
+            pkg.deleteWindowFromTree(root, root.right.windowID)
         else 
             deleteZombies(root.right, winmap)
         end
@@ -502,21 +502,21 @@ local function findWindow(root)
         return nil
     end
 
-    if root.windowId ~= nil and root.windowId ~= -1 then
-        return root.windowId
+    if root.windowID ~= nil and root.windowID ~= -1 then
+        return root.windowID
     end
 
-    if root.windowId == -1 then
+    if root.windowID == -1 then
         return nil
     end
 
 
-    if root.left.windowId ~= nil then 
-        return root.left.windowId
+    if root.left.windowID ~= nil then 
+        return root.left.windowID
     end
 
-    if root.right.windowId ~= nil then 
-        return root.right.windowId
+    if root.right.windowID ~= nil then 
+        return root.right.windowID
     end
 
     local rl = findWindow(root.left)
@@ -569,7 +569,7 @@ local function getNodeFromWindowID(root, id)
         return nil
     end
 
-    if root.windowId == id then
+    if root.windowID == id then
         return root
     end
 

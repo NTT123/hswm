@@ -92,7 +92,7 @@ local function window_manager(t)
                 if father == nil then
                     tree.insertToTree(root, w)
                 else
-                    if father.left.windowId == focusedWindowID then
+                    if father.left.windowID == focusedWindowID then
                         tree.insertToNode(father.left, w)
                     else
                         tree.insertToNode(father.right, w)
@@ -277,9 +277,9 @@ local windowResizeAndSwap = function(ev)
             isSwap = false
 
             if cur_node ~= nil and new_node ~= nil and cur_node ~= new_node then
-                local t = cur_node.windowId
-                cur_node.windowId = new_node.windowId
-                new_node.windowId = t
+                local t = cur_node.windowID
+                cur_node.windowID = new_node.windowID
+                new_node.windowID = t
                 hs.timer.doAfter(0, window_manager)
             end
 

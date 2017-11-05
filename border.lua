@@ -62,7 +62,7 @@ local function travelAndAppendToCanvas(root, canvas)
         return
     end
 
-    if root.windowId ~= nil and root.border_ ~= nil then
+    if root.windowID ~= nil and root.border_ ~= nil then
         canvas:appendElements(create_canvas_border(root.border_))
         return
     end
@@ -93,7 +93,7 @@ local function rescaleBorder(node, canvas)
         return 
     end
 
-    if node.windowId then
+    if node.windowID then
         return
     end
 
