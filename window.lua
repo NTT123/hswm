@@ -160,16 +160,21 @@ end
 pkg.window_manager = window_manager
 
 local function watchWindow(win, initializing)
-  local appWindows = watchers[win:application():pid()].windows
-  if  win:isStandard() and not appWindows[win:id()] and win:application():name() ~= "Hammerspoon" then
-    local watcher = win:newWatcher(pkg.handleWindowEvent, {pid=win:pid(), id=win:id()})
-    appWindows[win:id()] = watcher
-
-    watcher:start({events.elementDestroyed})
-
-    if not initializing then
+    if win == nil then
+        return
     end
-  end
+
+    local appWindows = watchers[win:application():pid()].windows
+    if  win:isStandard() and not appWindows[win:id()] and win:application():name() ~= "Hammerspoon" then
+        local watcher = win:newWatcher(pkg.handleWindowEvent, {pid=win:pid(), id=win:id()})
+        appWindows[win:id()] = watcher
+
+        watcher:start({events.elementDestroyed})
+
+        if not initializing then
+            --
+        end
+    end
 end
 
 pkg.watchWindow = watchWindow
@@ -423,7 +428,16 @@ local function onlyShiftCmd(ev)
 end
 
 local function onlyShiftCmd3(ev)
+
+    local dC = disableClick
+
     windowResizeAndSwap(ev)
+
+    if dC then
+        if ev:getType() == hs.eventtap.event.types.leftMouseDown or ev:getType() == hs.eventtap.event.types.rightMouseDown then
+            return true
+        end
+    end
     return false 
 end
 

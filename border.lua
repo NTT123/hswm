@@ -30,7 +30,7 @@ local function init_border()
     local Border = hs.drawing.rectangle(hs.geometry.rect(0,0,0,0))
     Border:setFill(false)
     Border:setStrokeWidth(3)
-    Border:setStrokeColor({["red"]=1,["blue"]=0,["green"]=0,["alpha"]=0.8})
+    Border:setStrokeColor({["red"]=0,["blue"]=1,["green"]=0,["alpha"]=0.8})
     return Border
 end
 
