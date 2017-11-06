@@ -127,34 +127,32 @@ local function window_manager(t)
     end
 
 
-    local f = function()
+    local fw = hs.window.focusedWindow()
+    if fw ~= nil then
+        focusedWindowID = fw:id()
+    else
+        return
+    end
 
-        local fw = hs.window.focusedWindow()
-        if fw ~= nil then
-            focusedWindowID = fw:id()
-        else
-            return
-        end
+    local frame = fw:frame()
+    if bdw[fw:id()] == nil then
+        bdw[fw:id()] = border.init_border()
+    end
 
-        local frame = fw:frame()
-        if bdw[fw:id()] == nil then
-            bdw[fw:id()] = border.init_border()
-        end
+    bdw[fw:id()]:setFrame(frame)
 
-        bdw[fw:id()]:setFrame(frame)
+    if previous_border ~= nil and previous_border ~= bdw[fw:id()] then
+        previous_border:hide()
+    end
 
-        if previous_border ~= nil and previous_border ~= bdw[fw:id()] then
-            previous_border:hide()
-        end
-
-        if previous_border ~= bdw[fw:id()] then
+    if previous_border ~= bdw[fw:id()] then
+        if fw:isStandard() and fw:application():name() ~= "Hammerspoon" and not fw:isFullScreen() then
             bdw[fw:id()]:show()
         end
-
-        previous_border = bdw[fw:id()]
-
     end
-    f()
+
+    previous_border = bdw[fw:id()]
+
 end
 
 pkg.window_manager = window_manager
