@@ -55,6 +55,15 @@ end
 pkg.space_manager = space_manager
 
 local function window_manager(t) 
+
+    if t == "timer" then
+        print("timer")
+        local tm = function ()
+            window_manager("timer")
+        end
+        hs.timer.doAfter(10, tm)
+    end
+
     local global_padding = pkg.GLOBAL.global_padding
     local window_padding = pkg.GLOBAL.window_padding
     local root = pkg.GLOBAL.root
@@ -64,12 +73,6 @@ local function window_manager(t)
         return
     end
 
-    if t == "timer" then
-        local tm = function ()
-            window_manager("timer")
-        end
-        hs.timer.doAfter(10, tm)
-    end
 
     local function compare(a,b)
         return a:id() < b:id()
