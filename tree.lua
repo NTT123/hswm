@@ -580,14 +580,17 @@ pkg.getNodeFromWindowID = getNodeFromWindowID
 local function swap(father)
     local left_frame = nil
     local right_frame = nil
-    
-    if father.left ~= nil then
-        left_frame = tools.cloneFrame(father.left.frame)
+
+    if father == nil then
+        return
     end
 
-    if father.right ~= nil then
-        right_frame = tools.cloneFrame(father.right.frame)
+    if father.left == nil or father.right == nil then
+        return
     end
+
+    left_frame = tools.cloneFrame(father.left.frame)
+    right_frame = tools.cloneFrame(father.right.frame)
 
     retilingNodeWithFrame(father.right, left_frame)
     retilingNodeWithFrame(father.left, right_frame)
@@ -599,6 +602,10 @@ local function swap(father)
     local t = father.left.border
     father.left.border = father.right.border
     father.right.border = t
+
+    local tt = father.left.border_
+    father.left.border_ = father.right.border_
+    father.right.border_ = tt
 end
 
 local function swap_hv(root)

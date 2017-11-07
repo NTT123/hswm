@@ -54,15 +54,7 @@ end
 
 pkg.space_manager = space_manager
 
-local function window_manager(t) 
-
-    if t == "timer" then
-        print("timer")
-        local tm = function ()
-            window_manager("timer")
-        end
-        hs.timer.doAfter(10, tm)
-    end
+local function window_manager()
 
     local global_padding = pkg.GLOBAL.global_padding
     local window_padding = pkg.GLOBAL.window_padding
@@ -267,6 +259,10 @@ pkg.handleAppEvent = handleAppEvent
 local windowResizeAndSwap = function(ev)
     local root = pkg.GLOBAL.root
     local result = ev:getFlags().ctrl
+
+    if root == nil then
+        return
+    end
 
     disableClick = false
 
@@ -476,7 +472,8 @@ local function init(GLOBAL)
           watchApp(apps[i], true)
       end
   end
-  window_manager("timer")
+
+  pkg.timer = hs.timer.doEvery(10, pkg.window_manager)
 end
 
 pkg.init = init
