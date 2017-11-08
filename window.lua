@@ -67,6 +67,14 @@ local function window_manager()
 
 
     local function compare(a,b)
+        if a == nil or b == nil then
+            return false
+        end
+
+        if a:id() == nil or a:id() == nil then
+            return false
+        end
+
         return a:id() < b:id()
     end
 	local ws = hs.window.visibleWindows()
@@ -157,17 +165,19 @@ local function watchWindow(win, initializing)
         return
     end
 
-    local appWindows = watchers[win:application():pid()].windows
-    if  win:isStandard() and not appWindows[win:id()] and win:application():name() ~= "Hammerspoon" then
-        local watcher = win:newWatcher(pkg.handleWindowEvent, {pid=win:pid(), id=win:id()})
-        appWindows[win:id()] = watcher
+    pcall(function()
+        local appWindows = watchers[win:application():pid()].windows
+        if  win:isStandard() and not appWindows[win:id()] and win:application():name() ~= "Hammerspoon" then
+            local watcher = win:newWatcher(pkg.handleWindowEvent, {pid=win:pid(), id=win:id()})
+            appWindows[win:id()] = watcher
 
-        watcher:start({events.elementDestroyed})
+            watcher:start({events.elementDestroyed})
 
-        if not initializing then
-            --
+            if not initializing then
+                --
+            end
         end
-    end
+    end)
 end
 
 pkg.watchWindow = watchWindow
