@@ -191,9 +191,9 @@ local function watchApp(app, initializing)
 
   watcher:start({events.windowCreated, events.focusedWindowChanged, events.mainWindowChanged, events.titleChanged})
 
-  -- Watch any windows that already exist
+  -- Watch any window that already exist
   for i, window in pairs(app:allWindows()) do
-    if (window:id() ~= null) then
+    if window:id() ~= null then
       bdw[window:id()] = border.init_border()
       bdw[window:id()]:hide()
 
