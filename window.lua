@@ -71,13 +71,14 @@ local function window_manager()
             return false
         end
 
-        if a:id() == nil or a:id() == nil then
+        if a:id() == nil or b:id() == nil then
             return false
         end
 
         return a:id() < b:id()
     end
-	local ws = hs.window.visibleWindows()
+
+    local ws = hs.window.visibleWindows()
 
     table.sort(ws, compare)
 
@@ -190,13 +191,14 @@ local function watchApp(app, initializing)
 
   watcher:start({events.windowCreated, events.focusedWindowChanged, events.mainWindowChanged, events.titleChanged})
 
-  -- Watch any windows that already exist
+  -- Watch any window that already exist
   for i, window in pairs(app:allWindows()) do
+    if window:id() ~= null then
+      bdw[window:id()] = border.init_border()
+      bdw[window:id()]:hide()
 
-    bdw[window:id()] = border.init_border()
-    bdw[window:id()]:hide()
-
-    watchWindow(window, initializing)
+      watchWindow(window, initializing)
+    end
   end
 end
 
